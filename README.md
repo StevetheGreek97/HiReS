@@ -34,7 +34,7 @@ cd HiReS
 pip install -e .
 ```
 
-or install directly from PyPI (after you publish):
+or install directly from PyPI:
 ```bash
 pip install hires
 ```
