@@ -1,0 +1,20 @@
+[project]
+name = "HiReS"
+version = "0.1.0"
+description = "High-Resolution Image Segmentation Pipeline"
+requires-python = ">=3.10"
+authors = [{ name = "Stylianos Mavrianos", email = "stylianosmavrianos@gmail.com" }]
+dependencies = [
+  "ultralytics>=8.0.0",
+  "Pillow>=10.0.0",
+  "shapely>=2.0.0",
+  "numpy>=1.25.0",
+  "matplotlib>=3.8.0",
+  "tqdm>=4.66.0"
+]
+
+[project.scripts]
+hires = "HiReS.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/<your-username>/HiReS"
