@@ -2,6 +2,7 @@
 name = "HiReSeg"
 version = "0.1.0"
 description = "High-Resolution Image Segmentation Pipeline"
+readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Stylianos Mavrianos", email = "stylianosmavrianos@gmail.com" }]
 dependencies = [
