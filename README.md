@@ -29,7 +29,7 @@ HiReS makes it easy to:
 
 ```bash
 # Clone and install
-git clone https://github.com/<your-username>/HiReS.git
+git clone https://github.com/StevetheGreek97/HiReS.git
 cd HiReS
 pip install -e .
 ```
