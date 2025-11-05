@@ -1,5 +1,5 @@
 [project]
-name = "HiReS"
+name = "HiReSeg"
 version = "0.1.0"
 description = "High-Resolution Image Segmentation Pipeline"
 requires-python = ">=3.10"
@@ -17,4 +17,4 @@ dependencies = [
 hires = "HiReS.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/<your-username>/HiReS"
+Homepage = "https://github.com/StevetheGreek97/HiReS.git"
