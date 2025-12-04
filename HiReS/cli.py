@@ -47,7 +47,9 @@ def cmd_chunk(args):
 
 def cmd_plot(args):
     """Render and save segmentation overlay."""
-    plotter = SegmentationPlotter(args.model) if args.model else SegmentationPlotter(None)
+    plotter = SegmentationPlotter(args.model) if args.model else SegmentationPlotter(
+        None
+    )
     plotter.plot_annotations(
         image_path=args.image,
         txt_path=args.ann,
@@ -73,6 +75,7 @@ def cmd_run(args):
         model_path=args.model,
         output_dir=args.out,
         workers=args.workers,
+        debug=args.debug,
     )
 
 
@@ -99,7 +102,6 @@ def build_parser():
 
     sub = ap.add_subparsers(dest="command")
 
-
     # hires chunk
     p_chunk = sub.add_parser("chunk", help="Split an image into tiles")
     p_chunk.add_argument("--image", required=True, help="Path to a single image")
@@ -115,13 +117,16 @@ def build_parser():
     p_chunk.add_argument("--overlap", type=int, default=150, help="Overlap in pixels")
     p_chunk.set_defaults(func=cmd_chunk)
 
-
     # hires plot
     p_plot = sub.add_parser("plot", help="Overlay polygons on an image")
     p_plot.add_argument("--image", required=True, help="Path to the image")
     p_plot.add_argument("--ann", required=True, help="YOLO .txt annotations")
-    p_plot.add_argument("--out", required=True, help="Output image path with extention")
-    p_plot.add_argument("--model", default=None, help="Optional model for color mapping")
+    p_plot.add_argument(
+        "--out", required=True, help="Output image path with extension"
+    )
+    p_plot.add_argument(
+        "--model", default=None, help="Optional model for color mapping"
+    )
     p_plot.set_defaults(func=cmd_plot)
 
     # hires run
@@ -129,8 +134,12 @@ def build_parser():
     p_run.add_argument("--image", required=True, help="Image file or directory")
     p_run.add_argument("--model", required=True, help="Path to YOLO model (.pt)")
     p_run.add_argument("--out", required=True, help="Output directory")
-    p_run.add_argument("--conf", type=float, default=0.5, help="Model confidence threshold")
-    p_run.add_argument("--imgsz", type=int, default=1024, help="Inference image size")
+    p_run.add_argument(
+        "--conf", type=float, default=0.5, help="Model confidence threshold"
+    )
+    p_run.add_argument(
+        "--imgsz", type=int, default=1024, help="Inference image size"
+    )
     p_run.add_argument("--device", default="cpu", help="Device: 'cpu' or 'cuda:0'")
     p_run.add_argument(
         "--chunk-size",
@@ -140,10 +149,32 @@ def build_parser():
         default=(1024, 1024),
         help="Chunk size as two integers (default: 1024 1024)",
     )
-    p_run.add_argument("--overlap", type=int, default=150, help="Overlap in pixels")
-    p_run.add_argument("--edge-thr", type=float, default=1e-2, help="Edge threshold for filtering polygons")
-    p_run.add_argument("--iou-thr", type=float, default=0.7, help="IoU threshold for polygon NMS")
-    p_run.add_argument("--workers", type=int, default=1, help="Parallel workers for directory input")
+    p_run.add_argument(
+        "--overlap", type=int, default=150, help="Overlap in pixels"
+    )
+    p_run.add_argument(
+        "--edge-thr",
+        type=float,
+        default=1e-2,
+        help="Edge threshold for filtering polygons",
+    )
+    p_run.add_argument(
+        "--iou-thr",
+        type=float,
+        default=0.7,
+        help="IoU threshold for polygon NMS",
+    )
+    p_run.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Parallel workers for directory input",
+    )
+    p_run.add_argument(
+        "--debug",
+        action="store_true",
+        help="Save intermediate debug plots (chunking, prediction, filtering, unified).",
+    )
     p_run.set_defaults(func=cmd_run)
 
     return ap

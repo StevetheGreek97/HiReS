@@ -1,9 +1,9 @@
-from ..anno.datatypes import ParsedAnnotationData
+from ..anno.datatypes import Annotation
 from typing import List
 
 
 def write_annotations_to_txt(
-    annotations: List[ParsedAnnotationData],
+    annotations: List[Annotation],
     output_path: str,
     include_conf: bool = True
 ) -> None:

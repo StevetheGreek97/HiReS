@@ -1,89 +1,103 @@
 from shapely.geometry import box
 from typing import List, Tuple
-from .datatypes import ParsedAnnotationData
+from .datatypes import Annotation
 import os
 from PIL import Image
 from .parser import AnnotationParser
 from ..ios.writer import write_annotations_to_txt
+import os
+from pathlib import Path
+from typing import Dict, Tuple
+from PIL import Image
+from shapely.geometry import Polygon
 
-def filter_touching_edges(
-    annotations: List[ParsedAnnotationData],
-    threshold: float = 1e-4
-) -> List[ParsedAnnotationData]:
+# assumes these are already defined somewhere:
+from HiReS.anno.datatypes import Annotation, AnnotationCollection
+
+
+def _parse_chunk_offsets(filename: str) -> Tuple[int, int]:
     """
-    Removes polygons that touch or cross the image edges (normalized [0, 1]),
-    using the actual polygon geometry instead of its bounding box.
+    Parse chunk offsets from a filename like: image_0_1024.txt or image_256_1024.txt
 
-    Args:
-        annotations (List[ParsedAnnotationData]): Parsed annotations.
-        threshold (float): Small inward offset to avoid floating-point errors.
-
-    Returns:
-        List[ParsedAnnotationData]: Polygons fully contained inside the image.
+    Returns
+    -------
+    (chunk_x, chunk_y)
     """
-    image_box = box(0.0, 0.0, 1.0, 1.0)
-    safe_box = image_box.buffer(-threshold)  # slightly inset boundary
-
-    filtered = []
-    for ann in annotations:
-        poly = ann.polygon
-        if not poly.is_valid or poly.is_empty:
-            continue
-        # Keep polygon only if it's fully inside (not touching/crossing edges)
-        if safe_box.contains(poly):
-            filtered.append(ann)
-
-    return filtered
+    stem = Path(filename).stem
+    # e.g. "image_0_1024" -> ["image", "0", "1024"]
+    _, x_str, y_str = stem.rsplit("_", 2)
+    return int(x_str), int(y_str)
 
 
-def unify(
-    annotation_dir: str,
-    output_txt_path: str,
+def unify_collections(
+    chunk_collections: Dict[str, AnnotationCollection],
     chunk_size: Tuple[int, int],
-    full_img_path: str
-) -> None:
+    full_img_path: str,
+) -> AnnotationCollection:
     """
-    Combine all YOLO segmentation .txt files from chunks into one file using AnnotationParser.
-    Based on the chunk's name (e.g., image_0_1024.jpg), the polygon coords are transformed!
+    Combine multiple chunk-level AnnotationCollections into one full-image collection.
 
-    Args:
-        annotation_dir (str): Directory with YOLO .txt chunk annotations.
-        output_txt_path (str): Path to save the combined annotation file.
-        chunk_size (Tuple[int, int]): (width, height) of each chunk in pixels.
-        full_img_size (Tuple[int, int]): (width, height) of the full image in pixels.
+    Parameters
+    ----------
+    chunk_collections : dict[str, AnnotationCollection]
+        Mapping from chunk filename (e.g. "image_0_1024.txt") to its filtered annotations
+        (with polygon coords still normalized in chunk space [0,1]).
+    chunk_size : (int, int)
+        (width, height) of each chunk in pixels.
+    full_img_path : str
+        Path to the full image (to get its size).
+
+    Returns
+    -------
+    AnnotationCollection
+        Unified annotations, polygons normalized in full-image coordinates [0,1].
     """
-    # Get image dimensions
     with Image.open(full_img_path) as img:
-        full_img_size = img.size  # (width, height)
-    combined_annotations: List[ParsedAnnotationData] = []
+        full_w, full_h = img.size
 
-    for filename in os.listdir(annotation_dir):
-        if not filename.endswith(".txt"):
-            continue
+    combined: list[Annotation] = []
 
-        txt_path = os.path.join(annotation_dir, filename)
-        if os.stat(txt_path).st_size == 0:
-            #print(f"Skipping empty file: {filename}")
-            continue
-
+    for filename, coll in chunk_collections.items():
         try:
-            _, x_str, y_str = os.path.splitext(filename)[0].rsplit("_", 2)
-            chunk_x = int(x_str)
-            chunk_y = int(y_str)
+            chunk_x, chunk_y = _parse_chunk_offsets(filename)
         except ValueError:
-            print(f"Skipping invalid filename format: {filename}")
+            # skip filenames that don't match the pattern
             continue
 
-        try:
-            parser = AnnotationParser(txt_path)
-        except FileNotFoundError:
-            continue
-
-        for ann in parser.parse():
+        for ann in coll.annotations:
             poly = ann.polygon
-            abs_coords = [(x * chunk_size[0] + chunk_x, y * chunk_size[1] + chunk_y) for x, y in poly.exterior.coords[:-1]]
-            rel_coords = [(x / full_img_size[0], y / full_img_size[1]) for x, y in abs_coords]
-            ann.polygon = type(poly)(rel_coords)  # replace polygon with transformed one
-            combined_annotations.append(ann)
+            if poly.is_empty:
+                continue
 
-    write_annotations_to_txt(combined_annotations, output_txt_path)
+            # 1) chunk-normalized -> absolute pixel coords in full image
+            abs_coords = [
+                (
+                    x * chunk_size[0] + chunk_x,
+                    y * chunk_size[1] + chunk_y,
+                )
+                for x, y in poly.exterior.coords[:-1]  # drop closing point
+            ]
+
+            # 2) pixel coords -> full-image normalized [0,1]
+            rel_coords = [
+                (x / full_w, y / full_h)
+                for x, y in abs_coords
+            ]
+
+            new_poly = Polygon(rel_coords)
+
+            combined.append(
+                Annotation(
+                    class_id=ann.class_id,
+                    polygon=new_poly,
+                    confidence=ann.confidence,
+                    # bboxes can be recomputed later if needed
+                    bounding_box=None,
+                    oriented_bounding_box=None,
+                )
+            )
+
+    return AnnotationCollection(
+        combined,
+        collection_name=Path(full_img_path).stem,
+    )
