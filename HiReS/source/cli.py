@@ -26,10 +26,10 @@ https://github.com/<your-username>/HiReS
 
 import argparse
 import sys
-from HiReS.config import Settings
-from HiReS.pipeline import Pipeline, setup_logging
-from HiReS.ios.chunker import ImageChunker
-from HiReS.ios.plotting import SegmentationPlotter
+from HiReS.source.config import Settings
+from HiReS.source.pipeline import Pipeline, setup_logging
+from HiReS.source.ios.chunker import ImageChunker
+from HiReS.source.ios.plotting import SegmentationPlotter
 
 
 # ---------------------------------------------------------------------
@@ -60,6 +60,9 @@ def cmd_plot(args):
 def cmd_run(args):
     """Execute the full segmentation pipeline."""
     cfg = Settings(
+        source=args.image,
+        model_path=args.model,
+        output_dir=args.out,    
         conf=args.conf,
         imgsz=args.imgsz,
         device=args.device,
@@ -71,9 +74,6 @@ def cmd_run(args):
 
     setup_logging()
     Pipeline(cfg).run(
-        input_path=args.image,
-        model_path=args.model,
-        output_dir=args.out,
         workers=args.workers,
         debug=args.debug,
     )

@@ -12,7 +12,7 @@ from PIL import Image
 from shapely.geometry import Polygon
 
 # assumes these are already defined somewhere:
-from HiReS.anno.datatypes import Annotation, AnnotationCollection
+from HiReS.source.anno.datatypes import Annotation, AnnotationCollection
 
 
 def _parse_chunk_offsets(filename: str) -> Tuple[int, int]:

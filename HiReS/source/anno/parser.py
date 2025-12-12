@@ -19,7 +19,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import explain_validity
 from shapely.errors import TopologicalError
 
-from HiReS.anno.datatypes import Annotation, BoundingBox, OrientedBoundingBox, AnnotationCollection  # your class
+from HiReS.source.anno.datatypes import Annotation, BoundingBox, OrientedBoundingBox, AnnotationCollection  # your class
 
 
 class AnnotationParser:

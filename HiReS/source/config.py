@@ -4,6 +4,9 @@ from typing import Tuple
 
 @dataclass
 class Settings:
+    source: str = 'data'
+    model_path: str = 'models/DaphnAI.pt'
+    output_dir: str = 'results'
     conf: float = 0.5
     imgsz: int = 1024
     device: str = "cpu"
