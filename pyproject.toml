@@ -1,6 +1,6 @@
 [project]
 name = "HiReSeg"
-version = "0.3.0"
+version = "0.4.0"
 description = "High-Resolution Image Segmentation Pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,11 +11,12 @@ dependencies = [
   "shapely>=2.0.0",
   "numpy>=1.25.0",
   "matplotlib>=3.8.0",
-  "tqdm>=4.66.0"
+  "tqdm>=4.66.0",
+  "pandas>=2.2.2"
 ]
 
 [project.scripts]
-hires = "HiReS.cli:main"
+hires = "HiReS.source.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/StevetheGreek97/HiReS.git"

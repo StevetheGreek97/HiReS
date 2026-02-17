@@ -190,4 +190,4 @@ class SegmentationPlotter:
 
         if save:
             cv2.imwrite(save, result)
-            print(f"Annotated image saved to: {save}")
+            #print(f"Annotated image saved to: {save}")

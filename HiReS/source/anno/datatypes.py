@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Tuple,List, Iterable, Dict, Union, Any
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 import copy
 from PIL import Image, ImageDraw
@@ -13,7 +13,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from dataclasses import dataclass
+
 
 from shapely.ops import unary_union
 
@@ -64,153 +64,230 @@ class OrientedBoundingBox:
         if len(unique_edges) == 1:  # square
             return unique_edges[0], unique_edges[0]
         return unique_edges[0], unique_edges[1]
-
 @dataclass
 class Annotation:
     class_id: int
     polygon: Polygon
     confidence: Optional[float] = None
-    bounding_box: BoundingBox = None
-    oriented_bounding_box: Optional[OrientedBoundingBox] = None
+    bounding_box: "BoundingBox" = None
+    oriented_bounding_box: Optional["OrientedBoundingBox"] = None
 
-    def plot(self, obb: bool = False, box: bool = False, dims: bool = False, padding: float = 0.05):
-        """
-        Plot polygon with optional bounding boxes and dimensions,
-        auto-zooming tightly around the object.
-        """
+    @property
+    def metrics(self) -> dict:
+        area = self.polygon.area
+        perimeter = self.polygon.length
+        convex_hull = self.polygon.convex_hull
+        
+        return {
+            "area": area,
+            "perimeter": perimeter,
+            "circularity": (4 * math.pi * area) / (perimeter**2) if perimeter > 0 else 0,
+            "solidity": area / convex_hull.area if convex_hull.area > 0 else 0,
+            "convexity": convex_hull.length / perimeter if perimeter > 0 else 0,
+            "convex_hull": convex_hull
+        }
+    def plot_morphology(self, mode: str = "solidity", ax: Optional[plt.Axes] = None, padding: float = 0.3):
+            if ax is None:
+                ax = plt.gca()
+            
+            m = self.metrics
+            xx, yy = self.polygon.exterior.xy
+            hx, hy = m['convex_hull'].exterior.xy
+            
+            # Consistent setup
+            minx, miny, maxx, maxy = self.polygon.bounds
+            max_dim = max(maxx - minx, maxy - miny)
+            cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
+            span = (max_dim / 2) * (1 + padding * 2)
+            ax.set_xlim(cx - span, cx + span)
+            ax.set_ylim(cy - span, cy + span)
+            ax.set_aspect("equal")
 
+            if mode == "solidity":
+                # Visualize the 'Convex Deficit' (The area difference)
+                ax.fill(hx, hy, color="#e74c3c", alpha=0.2, label="Convex Deficit")
+                ax.fill(xx, yy, color="#3498db", alpha=1.0, label="Object Area")
+                ax.plot(hx, hy, "--", color="#c0392b", lw=1.2, label="Convex Hull")
+                ax.set_title(f"Solidity = {m['solidity']:.3f}\n$A_{{obj}} / A_{{hull}}$", fontsize=10)
+
+            elif mode == "convexity":
+                # Use contrasting colors to show perimeter 'smoothness'
+                ax.plot(hx, hy, color="#2ecc71", lw=2.5, label="Convex Perimeter ($P_{hull}$)")
+                ax.plot(xx, yy, color="#2c3e50", lw=1.0, label="Actual Perimeter ($P_{obj}$)")
+                ax.set_title(f"Convexity = {m['convexity']:.3f}\n$P_{{hull}} / P_{{obj}}$", fontsize=10)
+
+            elif mode == "circularity":
+                # Draw the Isoperimetric Circle (Circle with the same perimeter)
+                # This visually shows why the circularity score drops as shapes deviate
+                center = self.polygon.centroid
+                iso_radius = m['perimeter'] / (2 * math.pi)
+                circle = plt.Circle((center.x, center.y), iso_radius, color='#f1c40f', 
+                                    fill=False, lw=1.5, ls="--", label="Isoperimetric Circle")
+                ax.add_patch(circle)
+                ax.fill(xx, yy, color="#3498db", alpha=0.6, label="Object")
+                ax.set_title(f"Circularity = {m['circularity']:.3f}\n$4\pi A / P^2$", fontsize=10)
+
+            elif mode == "dimensions":
+                # Improved OBB visualization with dimension arrows
+                if self.oriented_bounding_box:
+                    coords = list(self.oriented_bounding_box.coords)
+                    ring = coords + [coords[0]]
+                    ax.plot(*zip(*ring), "-.", color="#34495e", lw=1, alpha=0.7)
+                    
+                    # Fetch dimensions from your OBB object
+                    width, length = self.oriented_bounding_box.width_length
+                    pcx, pcy = self.polygon.centroid.x, self.polygon.centroid.y
+                    
+                    # Calculate orientation vectors (simplified)
+                    # Note: Requires your OBB object to expose the angle/rotation
+                    ax.fill(xx, yy, color="#3498db", alpha=0.5)
+                    ax.set_title(f"Morphological Dimensions\nL: {length:.2f} | W: {width:.2f}", fontsize=10)
+
+            ax.legend(loc='upper right', fontsize='7', frameon=True, facecolor='white', framealpha=0.9)
+            ax.set_xticks([]); ax.set_yticks([]) # Clean for publication figures
+            return ax
+    def plot(
+        self,
+        obb: bool = False,
+        box: bool = False,
+        dims: bool = False,
+        padding: float = 0.5,
+        ax: Optional[plt.Axes] = None,
+        show: bool = False,
+        tight: bool = True,
+        clear_ax: bool = False,
+    ):
         if dims and obb and box:
             raise ValueError("Only one of obb or box can be True when dims=True")
 
-        fig, ax = plt.subplots(figsize=(7, 7))
+        # 1. Handle Axes
+        if ax is None:
+            ax = plt.gca()
 
-        # -------------------------------------------------
-        # Auto-zoom around polygon
-        # -------------------------------------------------
+        if clear_ax:
+            ax.cla()
+
+        fig = ax.figure
+
+        # 2. FIX: Square Zoom Logic
+        # Calculate the bounds and the center of the polygon
         minx, miny, maxx, maxy = self.polygon.bounds
-        dx = maxx - minx
-        dy = maxy - miny
-        pad_x = dx * padding
-        pad_y = dy * padding
+        dx, dy = maxx - minx, maxy - miny
+        cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
 
-        # Handle degenerate cases (very tiny polygons)
-        if dx == 0:
-            pad_x = padding
-        if dy == 0:
-            pad_y = padding
+        # To make the plot square, we take the largest dimension
+        max_dim = max(dx, dy)
+        
+        # Apply padding to that largest dimension
+        # A padding of 0.5 means we add 50% of the object size to each side
+        span = (max_dim / 2) * (1 + padding * 2)
 
-        ax.set_xlim(minx - pad_x, maxx + pad_x)
-        ax.set_ylim(miny - pad_y, maxy + pad_y)
+        ax.set_xlim(cx - span, cx + span)
+        ax.set_ylim(cy - span, cy + span)
+        
+        # This ensures 1 unit on X = 1 unit on Y physically
+        ax.set_aspect("equal", adjustable="box")
 
-        # -------------------------------------------------
-        # Base polygon (filled)
-        # -------------------------------------------------
+        # 3. Plot Base Polygon
         xx, yy = self.polygon.exterior.xy
         ax.fill(xx, yy, alpha=0.35, color="#4c72b0", label="Polygon")
         ax.plot(xx, yy, color="#1f3b5d", lw=2)
 
-        # -------------------------------------------------
-        # Axis-aligned bounding box
-        # -------------------------------------------------
-        if box and self.bounding_box:
+        # 4. Oriented Bounding Box
+        if obb and self.oriented_bounding_box is not None:
+            coords = list(self.oriented_bounding_box.coords)
+            ring = coords + [coords[0]]
+            obx, oby = zip(*ring)
+            ax.plot(obx, oby, "-.", color="#e76f51", lw=2)
+
+            if dims:
+                width, length = self.oriented_bounding_box.width_length
+                
+                # Use centroid for label placement
+                pcx, pcy = self.polygon.centroid.x, self.polygon.centroid.y
+
+                # Calculate direction vectors from OBB edges
+                ex, ey = coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]
+                L_edge = math.hypot(ex, ey) or 1e-9
+                ux, uy = ex / L_edge, ey / L_edge # Unit vector along length
+                vx, vy = -uy, ux                  # Unit vector along width
+
+                # Length Arrow (Green)
+                ax.annotate("",
+                    xy=(pcx + (length/2) * ux, pcy + (length/2) * uy),
+                    xytext=(pcx - (length/2) * ux, pcy - (length/2) * uy),
+                    arrowprops=dict(arrowstyle="<->", color="#2ca02c", lw=1.6))
+
+                # Width Arrow (Red)
+                ax.annotate("",
+                    xy=(pcx + (width/2) * vx, pcy + (width/2) * vy),
+                    xytext=(pcx - (width/2) * vx, pcy - (width/2) * vy),
+                    arrowprops=dict(arrowstyle="<->", color="#d62728", lw=1.6))
+
+                ax.text(pcx, pcy, f"L={length:.4f}\nW={width:.4f}",
+                    ha="center", va="center", fontsize=9,
+                    bbox=dict(fc="white", ec="black", alpha=0.9))
+        # 4b. Axis-aligned Bounding Box
+        if box and self.bounding_box is not None:
             bb = self.bounding_box
+
+            # draw rectangle
             ax.plot(
                 [bb.minx, bb.maxx, bb.maxx, bb.minx, bb.minx],
                 [bb.miny, bb.miny, bb.maxy, bb.maxy, bb.miny],
                 "--",
-                color="#222",
+                color="#000000",
                 lw=2,
-                label="Bounding Box",
             )
 
             if dims:
-                cx = (bb.minx + bb.maxx) / 2
-                cy = (bb.miny + bb.maxy) / 2
-                ax.text(
-                    cx,
-                    cy,
-                    f"W={bb.width:.4f}\nH={bb.height:.4f}",
-                    ha="center",
-                    va="center",
-                    fontsize=9,
-                    bbox=dict(fc="white", ec="black", alpha=0.9),
-                    color="black",
-                )
+                cx, cy = bb.center
+                width = bb.width
+                height = bb.height
 
-        # -------------------------------------------------
-        # Oriented bounding box + dims (all in one block)
-        # -------------------------------------------------
-        if obb and self.oriented_bounding_box:
-            coords = list(self.oriented_bounding_box.coords)  # expected 4 points
-            if len(coords) < 4:
-                # fall back gracefully if something weird comes in
-                coords = coords + coords[: 4 - len(coords)]
-
-            # close the ring for plotting
-            ring = coords + [coords[0]]
-            obx, oby = zip(*ring)
-            ax.plot(obx, oby, "-.", color="#e76f51", lw=2, label="Oriented BBox")
-
-            if dims:
-                # width & length from your OBB object
-                width, length = self.oriented_bounding_box.width_length
-
-                obb_poly = Polygon(coords)
-                cx, cy = obb_poly.centroid.x, obb_poly.centroid.y
-
-                # use first edge as the "length" direction
-                dx = coords[1][0] - coords[0][0]
-                dy = coords[1][1] - coords[0][1]
-                L = math.hypot(dx, dy)
-                if L == 0:
-                    L = 1e-9  # avoid division by zero
-
-                # unit vectors along length (u) and width (v)
-                ux, uy = dx / L, dy / L          # length direction
-                vx, vy = -uy, ux                 # width direction
-
-                # ---- length arrow ----
+                # ---- width arrow (X direction) ----
                 ax.annotate(
                     "",
-                    xy=(cx + (length / 2) * ux, cy + (length / 2) * uy),
-                    xytext=(cx - (length / 2) * ux, cy - (length / 2) * uy),
+                    xy=(cx + width / 2, cy),
+                    xytext=(cx - width / 2, cy),
                     arrowprops=dict(arrowstyle="<->", color="#2ca02c", lw=1.6),
                 )
 
-                # ---- width arrow ----
+                # ---- height arrow (Y direction) ----
                 ax.annotate(
                     "",
-                    xy=(cx + (width / 2) * vx, cy + (width / 2) * vy),
-                    xytext=(cx - (width / 2) * vx, cy - (width / 2) * vy),
+                    xy=(cx, cy + height / 2),
+                    xytext=(cx, cy - height / 2),
                     arrowprops=dict(arrowstyle="<->", color="#d62728", lw=1.6),
                 )
 
-                # combined label near the centroid
+                # label
                 ax.text(
                     cx,
                     cy,
-                    f"L={length:.4f}\nW={width:.4f}",
+                    f"W={width:.4f}\nH={height:.4f}",
                     ha="center",
                     va="center",
                     fontsize=9,
                     bbox=dict(fc="white", ec="black", alpha=0.9),
-                    color="black",
                 )
 
-        # -------------------------------------------------
-        # Cosmetics
-        # -------------------------------------------------
+        # 5. Cosmetics
+        title = f"Annotation (class_id={self.class_id}"
         if self.confidence is not None:
-            title = f"Annotation (class_id={self.class_id}, conf={self.confidence:.3f})"
+            title += f", conf={self.confidence:.3f})"
         else:
-            title = f"Annotation (class_id={self.class_id})"
-
+            title += ")"
+        
         ax.set_title(title)
-        ax.set_aspect("equal", "box")
         ax.grid(True, linestyle=":", alpha=0.6)
 
-        plt.tight_layout()
-        plt.show()
+        if tight:
+            fig.tight_layout()
+        if show:
+            plt.show()
+
+        return ax
 
 
 @dataclass
@@ -235,6 +312,14 @@ class AnnotationCollection:
 
     def extend(self, anns: Iterable[Annotation]):
         self.annotations.extend(anns)
+
+
+    @property
+    def class_counts(self) -> Dict[int, int]:
+        """Number of annotations per class_id."""
+        counts = Counter(ann.class_id for ann in self.annotations)
+        return dict(sorted(counts.items()))
+
 
     # -----------------------------
     # IoU BETWEEN COLLECTIONS (via STRtree)

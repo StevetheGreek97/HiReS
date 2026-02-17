@@ -1,273 +1,119 @@
-# HiReS/pipeline.py
-import time
-import tempfile
-import shutil
-from contextlib import contextmanager
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from __future__ import annotations
 
-import logging
-import sys
-import queue
-from logging.handlers import QueueHandler, QueueListener
+
+from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
+
+from HiReS import ImageChunker
+from abc import ABC, abstractmethod
+from pathlib import Path
 
 from HiReS.source.config import Settings
-from HiReS.source.ios.chunker import ImageChunker
-from HiReS.source.ios.yolo_predictor import YOLOSegPredictor
-from HiReS.source.anno.parser import AnnotationParser
-from HiReS.source.anno.datatypes import AnnotationCollection
-from HiReS.source.anno.ops import unify_collections  # adjust path/name if needed
-from HiReS.source.ios.plotting import SegmentationPlotter
+from HiReS.source.utils.logger import create_logger, image_context
+
+IMG_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 
-def setup_logging(level=logging.INFO, log_file=None):
-    log_q = queue.Queue(-1)
-    root = logging.getLogger()
-    root.handlers.clear()
-    root.setLevel(level)
-
-    qh = QueueHandler(log_q)
-    root.addHandler(qh)
-
-    fmt = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(fmt)
-    handlers = [console]
-    if log_file:
-        fh = logging.FileHandler(log_file)
-        fh.setFormatter(fmt)
-        handlers.append(fh)
-
-    listener = QueueListener(log_q, *handlers, respect_handler_level=True)
-    listener.start()
-    return listener
-
-
-@contextmanager
-def log_step(name: str, logger: logging.Logger):
-    t0 = time.perf_counter()
-    logger.info(">> %s: start", name)
-    try:
-        yield
-    finally:
-        dt = time.perf_counter() - t0
-        logger.info("[OK] %s: done in %.2f s", name, dt)
-
-
-setup_logging()
-
-# HiReS/pipeline.py
-import time
-import tempfile
-import shutil
-from contextlib import contextmanager
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import logging
-import sys
-import queue
-from logging.handlers import QueueHandler, QueueListener
-
-from HiReS.source.config import Settings
-from HiReS.source.ios.chunker import ImageChunker
-from HiReS.source.ios.yolo_predictor import YOLOSegPredictor
-from HiReS.source.anno.parser import AnnotationParser
-from HiReS.source.anno.datatypes import AnnotationCollection
-from HiReS.source.anno.ops import unify_collections  # adjust path/name if needed
-from HiReS.source.ios.plotting import SegmentationPlotter
-
-
-def setup_logging(level=logging.INFO, log_file=None):
-    log_q = queue.Queue(-1)
-    root = logging.getLogger()
-    root.handlers.clear()
-    root.setLevel(level)
-
-    qh = QueueHandler(log_q)
-    root.addHandler(qh)
-
-    fmt = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(fmt)
-    handlers = [console]
-    if log_file:
-        fh = logging.FileHandler(log_file)
-        fh.setFormatter(fmt)
-        handlers.append(fh)
-
-    listener = QueueListener(log_q, *handlers, respect_handler_level=True)
-    listener.start()
-    return listener
-
-
-@contextmanager
-def log_step(name: str, logger: logging.Logger):
-    t0 = time.perf_counter()
-    logger.info(">> %s: start", name)
-    try:
-        yield
-    finally:
-        dt = time.perf_counter() - t0
-        logger.info("[OK] %s: done in %.2f s", name, dt)
-
-
-setup_logging()
-
-
-class Pipeline:
-    def __init__(self, cfg: Settings, logger: logging.Logger | None = None):
+class BasePipeline(ABC):
+    def __init__(self, cfg: Settings | None = None):
         self.cfg = cfg
-        self.log = logger or logging.getLogger("HiReS.Pipeline")
+        self.logger = create_logger()
 
-    def run(
-        self,
-        *,
-        workers: int = 1,
-        patterns: tuple[str, ...] = ("*.tif", "*.tiff", "*.png", "*.jpg", "*.jpeg"),
-        debug: bool = False,
-        progress_cb=None,   # <-- NEW
-    ) -> list[str] | str:
-        """
-        Smart entry:
-          - If input_path is a FILE → process single image, return final .txt path (str).
-          - If input_path is a DIR  → process all images inside, return list of final .txt paths.
-          - progress_cb(frac, message) is called with frac in [0, 1].
-        """
-        ipath = Path(self.cfg.source)
+    def _iter_images(self) -> list[Path]:
+        src = Path(self.cfg.source)
 
-        # -----------------------------
-        # SINGLE IMAGE MODE
-        # -----------------------------
-        if ipath.is_file():
-            self.log.info("Detected single image: %s", ipath)
+        if src.is_file():
+            return [src]
 
-            if progress_cb:
-                progress_cb(0.0, f"Starting {ipath.name}")
+        if src.is_dir():
+            if getattr(self.cfg, "recursive", False):
+                files = [p for p in src.rglob("*") if p.suffix.lower() in IMG_EXTS]
+            else:
+                files = [p for p in src.iterdir() if p.suffix.lower() in IMG_EXTS]
+            return sorted(files)
 
-            result_txt = self._run_single(
-                ipath,
-                Path(self.cfg.model_path),
-                Path(self.cfg.output_dir),
-                self.log,
-                debug=debug,
-                progress_cb=progress_cb
-            )
+        return []
 
-            if progress_cb:
-                progress_cb(1.0, f"Finished {ipath.name}")
+    def _get_output_dir(self, img: Path) -> Path:
+        base = Path(self.cfg.output_dir)
+        src = Path(self.cfg.source)
 
-            return result_txt
+        if src.is_dir() and getattr(self.cfg, "recursive", False):
+            return base / img.parent.relative_to(src)
 
-        # -----------------------------
-        # DIRECTORY MODE
-        # -----------------------------
-        if not ipath.is_dir():
-            raise FileNotFoundError(f"Input path not found: {ipath}")
+        return base
 
-        out_dir = Path(self.cfg.output_dir)
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        images: list[Path] = []
-        for pat in patterns:
-            images.extend(sorted(ipath.glob(pat)))
-
-        self.log.info(
-            "Detected directory: %s (%d images, patterns=%s)",
-            ipath,
-            len(images),
-            patterns,
+    def _detect_mode(self, src: Path) -> str:
+        if src.is_file():
+            return "single file"
+        if getattr(self.cfg, "recursive", False):
+            return "recursive directory"
+        return "directory"
+    
+    def _log_run_header(self, mode: str, n_images: int) -> None:
+        self.logger.info(
+            "%s | mode=%s | images=%d | debug=%s | output=%s",
+            #self.label,
+            mode,
+            n_images,
+            getattr(self.cfg, "debug", False),
+            self.cfg.output_dir,
         )
+    def run(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _run_single(self, image_path: Path, debug: bool = False) -> str | None:
+        """Implement one-image processing."""
+        raise NotImplementedError
+
+
+import os
+import tempfile
+from contextlib import nullcontext
+from pathlib import Path
+
+from HiReS import ImageChunker, YOLOSegPredictor, SegmentationPlotter, AnnotationParser
+from HiReS.source.anno.datatypes import AnnotationCollection
+from HiReS.source.anno.ops import unify_collections
+from HiReS.source.utils.logger import log_step
+from HiReS.source.utils.fun import spinner
+
+
+class SegmentationPipeline(BasePipeline):
+    def run(self):
+        src = Path(self.cfg.source)
+        images = self._iter_images()
 
         if not images:
-            self.log.warning("No images found in %s", ipath)
-            if progress_cb:
-                progress_cb(1.0, "No images found")
-            return []
+            self.logger.error(
+                "No valid images found at: %s. If recursive processing is needed, enable '--recursive'.",
+                src,
+            )
+            return
 
-        total = len(images)
-        completed = 0
-        results: list[str] = []
-        workers = max(1, int(workers))
-        self.log.info("Processing in parallel with workers=%d", workers)
+        mode = self._detect_mode(src)
+        #self._log_run_header(mode, len(images))
 
-        if progress_cb:
-            progress_cb(0.0, f"Queued {total} images")
+        for i, img in enumerate(images, start=1):
+            out_dir = self._get_output_dir(img)
+            out_dir.mkdir(parents=True, exist_ok=True)
 
-        def submit(img: Path):
-            child = logging.getLogger(f"HiReS.Pipeline[{img.name}]")
+            old_out = self.cfg.output_dir
+            self.cfg.output_dir = str(out_dir)
+
             try:
-                return self._run_single(
-                    img,
-                    Path(self.cfg.model_path),
-                    out_dir,
-                    child,
-                    debug=debug,
-                )
-            except Exception as e:
-                child.exception("Failed: %s", e)
-                return None
+                #with image_context(self.logger, img, i, len(images)):
+                self._run_single(img, debug=getattr(self.cfg, "debug", False))
+            except Exception:
+                self.logger.exception("✖ FAILED [%d/%d] %s", i, len(images), img)
+            finally:
+                self.cfg.output_dir = old_out
 
-        # ---- workers == 1 → simple for-loop ----
-        if workers == 1:
-            for img in images:
-                r = submit(img)
-                if r:
-                    results.append(r)
-
-                completed += 1
-                if progress_cb:
-                    frac = completed / total
-                    progress_cb(frac, f"[{completed}/{total}]")
-
-        # ---- workers > 1 → ThreadPoolExecutor + as_completed ----
-        else:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-
-            with ThreadPoolExecutor(max_workers=workers) as ex:
-                futs = {ex.submit(submit, img): img for img in images}
-                for fut in as_completed(futs):
-                    img = futs[fut]
-                    r = fut.result()
-                    if r:
-                        results.append(r)
-
-                    completed += 1
-                    if progress_cb:
-                        frac = completed / total
-                        progress_cb(frac, f"[{completed}/{total}]")
-
-        self.log.info("Completed %d/%d images", len(results), len(images))
-
-        if progress_cb:
-            progress_cb(1.0, "All images processed")
-
-        return results
-
-
-    def _run_single(
-        self,
-        image_path: Path,
-        model_path: Path,
-        output_dir: Path,
-        logger: logging.Logger,
-        debug: bool = False,
-        progress_cb=None,
-    ) -> str:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        image_stem = image_path.stem
-        total_steps = 6
-
-        def update(step_idx: int, message: str):
-            """
-            step_idx: 0..total_steps
-            """
-            if progress_cb:
-                frac = max(0.0, min(1.0, step_idx / total_steps))
-                progress_cb(frac, message)
-
-        logger.info("Image: %s | Model: %s", image_path, model_path)
-        logger.info(
+    def _run_single(self, image_path: Path, debug: bool = False) -> str:
+        self.logger.info("Image: %s | Model: %s", image_path, self.cfg.model_path)
+        self.logger.info(
             "Config: conf=%.3f imgsz=%d device=%s chunk=%s overlap=%d edge_thr=%.4g iou_thr=%.3f",
             self.cfg.conf,
             self.cfg.imgsz,
@@ -278,212 +124,188 @@ class Pipeline:
             self.cfg.iou_thresh,
         )
 
-        # Optional debug dirs
-        if debug:
-            debug_dir = output_dir / f"{image_stem}_debug"
-            debug_chunks_dir = debug_dir / "chunks"
-            debug_pred_dir = debug_dir / "pred"
-            debug_filtered_dir = debug_dir / "filtered"
-            debug_filtered_txt_dir = debug_dir / "filtered_txt"
-            debug_dir.mkdir(parents=True, exist_ok=True)
-            debug_chunks_dir.mkdir(parents=True, exist_ok=True)
-            debug_pred_dir.mkdir(parents=True, exist_ok=True)
-            debug_filtered_dir.mkdir(parents=True, exist_ok=True)
-            debug_filtered_txt_dir.mkdir(parents=True, exist_ok=True)
-        else:
-            debug_dir = None
-            debug_chunks_dir = None
-            debug_pred_dir = None
-            debug_filtered_dir = None
-            debug_filtered_txt_dir = None
+        image_stem = image_path.stem
+        Path(self.cfg.output_dir).mkdir(parents=True, exist_ok=True)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
+        base = os.environ.get("TMPDIR")
+        if debug:
+            debug_workdir = Path(self.cfg.output_dir) / "_temp" / image_stem
+            debug_workdir.mkdir(parents=True, exist_ok=True)
+            ctx = nullcontext(debug_workdir)
+        else:
+            ctx = tempfile.TemporaryDirectory(dir=base)
+
+        with ctx as workdir:
+            tmp = Path(workdir)
             tmp_chunks = tmp / "chunks"
             tmp_pred = tmp / "pred"
-            for p in (tmp_chunks, tmp_pred):
-                p.mkdir(parents=True, exist_ok=True)
+            tmp_filtered = tmp / "filtered"
+            tmp_chunks.mkdir(parents=True, exist_ok=True)
+            tmp_pred.mkdir(parents=True, exist_ok=True)
+            tmp_filtered.mkdir(parents=True, exist_ok=True)
 
-            # 1) Chunking
-            with log_step("Chunking", logger):
+            with log_step("Chunking", self.logger):
                 ImageChunker(str(image_path)).slice(
                     save_folder=str(tmp_chunks),
                     chunk_size=self.cfg.chunk_size,
                     overlap=self.cfg.overlap,
                 )
-                chunks = sorted(tmp_chunks.glob("*.png"))
-                logger.info("Chunks: %d", len(chunks))
 
-                if debug and debug_chunks_dir is not None:
-                    # keep chunk images
-                    for ch in chunks:
-                        shutil.copy2(ch, debug_chunks_dir / ch.name)
-            update(1, "Chunking done")      
-            # 2) Prediction
-            with log_step("Prediction", logger):
-                YOLOSegPredictor(str(model_path), output_dir=str(tmp_pred)).predict(
-                    image_dir=str(tmp_chunks),
-                    conf=self.cfg.conf,
-                    imgsz=self.cfg.imgsz,
-                    device=self.cfg.device,
-                )
-                pred_txts = sorted(tmp_pred.glob("*.txt"))
-                logger.info("Prediction txt: %d", len(pred_txts))
+            with log_step("Prediction", self.logger):
+                with spinner("Predicting"):
+                    YOLOSegPredictor(str(self.cfg.model_path), output_dir=str(tmp_pred)).predict(
+                        image_dir=str(tmp_chunks),
+                        conf=self.cfg.conf,
+                        imgsz=self.cfg.imgsz,
+                        device=self.cfg.device,
+                    )
 
-                if debug and debug_pred_dir is not None:
-                    plotter = SegmentationPlotter(str(model_path))
-                    for txt in pred_txts:
-                        chunk_img = tmp_chunks / f"{txt.stem}.png"
-                        if not chunk_img.exists():
-                            continue
-                        out_img = debug_pred_dir / f"{txt.stem}_pred.png"
-                        plotter.plot_annotations(
-                            str(chunk_img),
-                            str(txt),
-                            save=str(out_img),
-                        )
-            update(2, "Prediction done")
-            # 3) Filtering edge-touching polygons (in-memory)
-            with log_step("Filtering edge-touching polygons", logger):
+            pred_txts = sorted(tmp_pred.glob("*.txt"))
+
+            with log_step("Filtering edge-touching polygons", self.logger):
                 chunk_colls: dict[str, AnnotationCollection] = {}
-                total = 0
-                plotter = SegmentationPlotter(str(model_path)) if debug else None
-
                 for txt in pred_txts:
                     anns = list(AnnotationParser(str(txt)).parse())
                     coll = AnnotationCollection(anns, collection_name=txt.stem)
 
-                    filtered_coll = coll.remove_edge_cases(
-                        threshold=self.cfg.edge_threshold
-                    )
-
+                    filtered_coll = coll.remove_edge_cases(threshold=self.cfg.edge_threshold)
                     chunk_colls[txt.name] = filtered_coll
-                    total += len(filtered_coll)
 
-                    if debug and all(
-                        d is not None
-                        for d in (debug_filtered_dir, debug_filtered_txt_dir)
-                    ):
-                        # write filtered txt + plot per chunk
-                        filtered_txt = (
-                            debug_filtered_txt_dir / f"{txt.stem}_filtered.txt"
-                        )
-                        filtered_coll.write_annotations_to_txt(
-                            str(filtered_txt), include_conf=True
-                        )
-                        chunk_img = tmp_chunks / f"{txt.stem}.png"
-                        if chunk_img.exists():
-                            out_img = (
-                                debug_filtered_dir / f"{txt.stem}_filtered.png"
-                            )
-                            plotter.plot_annotations(
-                                str(chunk_img),
-                                str(filtered_txt),
-                                save=str(out_img),
-                            )
-
-                logger.info("Kept polygons after edge filter: %d", total)
-            update(3, "Filtering done")
-            # 4) Unify chunk annotations back into full-image coordinates (in-memory)
-            with log_step("Unifying chunk annotations", logger):
+            with log_step("Unifying chunk annotations", self.logger):
                 unified_coll = unify_collections(
                     chunk_collections=chunk_colls,
                     chunk_size=self.cfg.chunk_size,
                     full_img_path=str(image_path),
                 )
-                logger.info("Unified polygons: %d", len(unified_coll))
-                
-                unified_coll = unified_coll.remove_edge_cases(
-                        threshold=self.cfg.edge_threshold
-                    )
+                unified_coll = unified_coll.remove_edge_cases(threshold=self.cfg.edge_threshold)
 
-                if debug and debug_dir is not None:
-                    unified_txt = debug_dir / f"{image_stem}_unified.txt"
-                    unified_coll.write_annotations_to_txt(
-                        str(unified_txt), include_conf=True
-                    )
-                    unified_img = debug_dir / f"{image_stem}_unified.png"
-                    SegmentationPlotter(str(model_path)).plot_annotations(
-                        str(image_path),
-                        str(unified_txt),
-                        save=str(unified_img),
-                    )
+            with log_step("Applying polygon NMS", self.logger):
+                kept_coll = unified_coll.nms(
+                    iou_threshold=self.cfg.iou_thresh,
+                    class_aware=False,
+                    return_indices=False,
+                )
+                final_txt = Path(self.cfg.output_dir) / f"{image_stem}.txt"
+                kept_coll.write_annotations_to_txt(str(final_txt), include_conf=True)
 
-            # end of tempfile context (unified_coll still in memory)
-            update(4, "Unifying done")  
-        # 5) Polygon NMS (in-memory)
-        with log_step("Applying polygon NMS", logger):
-            before_n = len(unified_coll)
-
-            kept_coll = unified_coll.nms(
-                iou_threshold=self.cfg.iou_thresh,
-                class_aware=False,
-                return_indices=False,
-            )
-
-            after_n = len(kept_coll)
-
-            logger.info("Polygons before NMS: %d", before_n)
-            logger.info("Polygons after  NMS: %d", after_n)
-            logger.info("NMS removed: %d polygons", before_n - after_n)
-
-            final_txt = output_dir / f"{image_stem}.txt"
-            kept_coll.write_annotations_to_txt(str(final_txt), include_conf=True)
-
-            logger.info("NMS kept: %d → %s", after_n, final_txt)
-            update(5, "NMS done")
-            # 6) Final visualization (NMS result)
-            with log_step("Visualization", logger):
-                out_img = output_dir / f"{image_stem}_annotated.tif"
-                SegmentationPlotter(str(model_path)).plot_annotations(
+            with log_step("Visualization", self.logger):
+                out_img = Path(self.cfg.output_dir) / f"{image_stem}_annotated.tif"
+                SegmentationPlotter(str(self.cfg.model_path)).plot_annotations(
                     str(image_path),
                     str(final_txt),
                     seg=True,
                     save=str(out_img),
                 )
-                logger.info("Overlay saved: %s", out_img)
 
-        # 7) Shape descriptors + crops (unchanged)
-        with log_step("Shape descriptors & crops", logger):
-            crops_dir = output_dir / f"{image_stem}_crops"
-            crops = kept_coll.save_crops(
-                image=str(image_path),
-                out_dir=crops_dir,
-                use_mask=True,
-                file_prefix=image_stem,
-                ext="png",
-                denormalize=True,
+            with log_step("Shape descriptors & crops", self.logger):
+                crops_dir = Path(self.cfg.output_dir) / f"{image_stem}_crops"
+                crops = kept_coll.save_crops(
+                    image=str(image_path),
+                    out_dir=crops_dir,
+                    use_mask=True,
+                    file_prefix=image_stem,
+                    ext="png",
+                    denormalize=True,
+                )
+
+                df = kept_coll.shape_descriptors(crops=crops)
+                shapes_csv = Path(self.cfg.output_dir) / f"{image_stem}_shapes.csv"
+                df.to_csv(shapes_csv, index=False)
+
+                self.logger.info("Saved %d crops → %s", len(crops), crops_dir)
+                self.logger.info("Saved shape descriptors → %s", shapes_csv)
+
+            self.logger.info("Done → %s", self.cfg.output_dir)
+            return str(final_txt)
+
+
+
+# ----------------------------
+# Chunking
+# ----------------------------
+class ChunkingPipeline(BasePipeline):
+    def _run_single(self, image: str | Path) -> str:
+        img = Path(image)
+
+        out_dir = self._get_output_dir(img)
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        out_chunks = out_dir / f"{img.stem}_chunks"
+        out_chunks.mkdir(parents=True, exist_ok=True)
+
+        ImageChunker(str(img)).slice(
+            save_folder=str(out_chunks),
+            chunk_size=self.cfg.chunk_size,
+            overlap=self.cfg.overlap,
+        )
+
+        return str(out_chunks)
+
+    def run(self) -> None:
+        src = Path(self.cfg.source)
+        images = self._iter_images()
+
+        if not images:
+            self.logger.error(
+                "No valid images found at: %s. If recursive processing is needed, enable '--recursive'.",
+                src,
             )
+            return
 
-            df = kept_coll.shape_descriptors(crops=crops)
-            shapes_csv = output_dir / f"{image_stem}_shapes.csv"
-            df.to_csv(shapes_csv, index=False)
+        self.logger.info("[CHUNK] images=%d output=%s", len(images), self.cfg.output_dir)
 
-            logger.info("Saved %d crops → %s", len(crops), crops_dir)
-            logger.info("Saved shape descriptors → %s", shapes_csv)
-        update(6, "Shape descriptors done")
-        logger.info("Done → %s", output_dir)
-        return str(final_txt)
+        for img in tqdm(images, desc="Chunking", unit="img"):
+            try:
+                self._run_single(img)
+            except Exception:
+                self.logger.exception("[CHUNK] FAIL %s", img)
 
 
-if __name__ == "__main__":
-    input_path = "/media/steve/UHH_EXT/Pictures/transfer_2961247_files_8d6ee684/2024112_VeraTest_043.tif"
-    model_path = "/home/steve/Desktop/NonofYaBuisness/zenodo/DaphnAI.pt"
-    setup_logging()
+# ----------------------------
+# Plotting
+# ----------------------------
+class PlottingPipeline(BasePipeline):
+    def _run_single(self, image: str | Path, ann_path: str | Path = None) -> str | None:
+        img = Path(image)
 
-    cfg = Settings(
-        source= input_path,
-        model_path= model_path,
-        output_dir="/home/steve/Desktop/tester/",
-        conf=0.58,
-        imgsz=1024,
-        device="cpu",
-        chunk_size=(1024, 1024),
-        overlap=300,
-        edge_threshold=0.01,
-        iou_thresh=0.7,
-    )
+        out_dir = self._get_output_dir(img)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        if ann_path:
+            ann = Path(ann_path)
+        else:
+            # If annotation path not provided, assume same name as image but .txt in the output dir
+            ann = out_dir / f"{img.stem}.txt"
+        if not ann.exists():
+            self.logger.warning("[PLOT] missing annotation for %s", img.name)
+            return None
 
-    Pipeline(cfg).run(
-        debug=True,  # set False if you don't want intermediate plots
-    )
+        out_img = out_dir / f"{img.stem}_annotated.tif"
+
+        SegmentationPlotter(str(self.cfg.model_path)).plot_annotations(
+            str(img),
+            str(ann),
+            seg=True,
+            save=str(out_img),
+        )
+
+        return str(out_img)
+
+    def run(self) -> None:
+        src = Path(self.cfg.source)
+        images = self._iter_images()
+
+        if not images:
+            self.logger.error(
+                "No valid images found at: %s. If recursive processing is needed, enable '--recursive'.",
+                src,
+            )
+            return
+
+        self.logger.info("[PLOT] images=%d output=%s", len(images), self.cfg.output_dir)
+
+        for img in tqdm(images, desc="Plotting", unit="img"):
+            try:
+                self._run_single(img,self.cfg.ann)
+
+            except Exception:
+                self.logger.exception("[PLOT] FAIL %s", img)

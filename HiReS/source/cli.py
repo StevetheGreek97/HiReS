@@ -17,7 +17,7 @@ Available subcommands:
 
 Examples:
     hires chunk --image raw.tif --out chunks/ --chunk-size 1024 1024 --overlap 150
-    hires run --image data/ --model models/DaphnAI.pt --out results/ --workers 4
+    hires run --source data/ --model models/DaphnAI.pt --out results/ --workers 4
     hires plot --image raw.tif --ann results/raw.txt --out overlay.png
 
 For detailed documentation, visit:
@@ -27,9 +27,8 @@ https://github.com/<your-username>/HiReS
 import argparse
 import sys
 from HiReS.source.config import Settings
-from HiReS.source.pipeline import Pipeline, setup_logging
-from HiReS.source.ios.chunker import ImageChunker
-from HiReS.source.ios.plotting import SegmentationPlotter
+from HiReS.source.pipeline import SegmentationPipeline, PlottingPipeline, ChunkingPipeline
+
 
 
 # ---------------------------------------------------------------------
@@ -37,30 +36,32 @@ from HiReS.source.ios.plotting import SegmentationPlotter
 # ---------------------------------------------------------------------
 def cmd_chunk(args):
     """Slice a large image into tiles for processing."""
-    chunk_w, chunk_h = args.chunk_size
-    ImageChunker(args.image).slice(
-        save_folder=args.out,
-        chunk_size=(chunk_w, chunk_h),
+    cfg = Settings(
+        source=args.source,
+        output_dir=args.out,
+        imgsz=args.chunk_size,
         overlap=args.overlap,
-    )
+        recursive=args.recursive,)
+    ChunkingPipeline(cfg).run()
 
 
 def cmd_plot(args):
     """Render and save segmentation overlay."""
-    plotter = SegmentationPlotter(args.model) if args.model else SegmentationPlotter(
-        None
+    cfg = Settings(
+        source=args.image,
+        model_path=args.model,
+        output_dir=args.out,
+        ann= args.ann
     )
-    plotter.plot_annotations(
-        image_path=args.image,
-        txt_path=args.ann,
-        save=args.out,
-    )
+    PlottingPipeline(cfg).run()
+
+
 
 
 def cmd_run(args):
     """Execute the full segmentation pipeline."""
     cfg = Settings(
-        source=args.image,
+        source=args.source,
         model_path=args.model,
         output_dir=args.out,    
         conf=args.conf,
@@ -70,16 +71,11 @@ def cmd_run(args):
         overlap=args.overlap,
         edge_threshold=args.edge_thr,
         iou_thresh=args.iou_thr,
+        recursive=args.recursive,
     )
-
-    setup_logging()
-    Pipeline(cfg).run(
-        workers=args.workers,
-        debug=args.debug,
-    )
+    SegmentationPipeline(cfg).run()
 
 
-# Argument Parser Construction
 def build_parser():
     """Build and return the top-level CLI parser."""
     ap = argparse.ArgumentParser(
@@ -104,7 +100,8 @@ def build_parser():
 
     # hires chunk
     p_chunk = sub.add_parser("chunk", help="Split an image into tiles")
-    p_chunk.add_argument("--image", required=True, help="Path to a single image")
+    
+    p_chunk.add_argument("--source", required=True, help="Path to image(s)")
     p_chunk.add_argument("--out", required=True, help="Directory to save chunks")
     p_chunk.add_argument(
         "--chunk-size",
@@ -113,6 +110,11 @@ def build_parser():
         metavar=("WIDTH", "HEIGHT"),
         default=(1024, 1024),
         help="Chunk size as two integers (default: 1024 1024)",
+    )
+    p_chunk.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Recursively process subdirectories.",
     )
     p_chunk.add_argument("--overlap", type=int, default=150, help="Overlap in pixels")
     p_chunk.set_defaults(func=cmd_chunk)
@@ -131,7 +133,7 @@ def build_parser():
 
     # hires run
     p_run = sub.add_parser("run", help="Run full segmentation pipeline")
-    p_run.add_argument("--image", required=True, help="Image file or directory")
+    p_run.add_argument("--source", required=True, help="Image file or directory")
     p_run.add_argument("--model", required=True, help="Path to YOLO model (.pt)")
     p_run.add_argument("--out", required=True, help="Output directory")
     p_run.add_argument(
@@ -174,6 +176,11 @@ def build_parser():
         "--debug",
         action="store_true",
         help="Save intermediate debug plots (chunking, prediction, filtering, unified).",
+    )
+    p_run.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Recursively process subdirectories.",
     )
     p_run.set_defaults(func=cmd_run)
 

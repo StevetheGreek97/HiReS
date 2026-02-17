@@ -14,3 +14,6 @@ class Settings:
     overlap: int = 150
     edge_threshold: float = 1e-2
     iou_thresh: float = 0.7
+    debug: bool = False
+    recursive: bool = False
+    ann: str = ''  # Path to annotation file for plotting

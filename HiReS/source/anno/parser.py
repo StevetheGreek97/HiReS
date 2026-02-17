@@ -13,19 +13,15 @@ from shapely.geometry import Polygon, MultiPolygon
 
 import os
 from os import PathLike
-from typing import Union, Optional, List, Tuple
 
-from shapely.geometry import Polygon, MultiPolygon
-from shapely.validation import explain_validity
-from shapely.errors import TopologicalError
 
 from HiReS.source.anno.datatypes import Annotation, BoundingBox, OrientedBoundingBox, AnnotationCollection  # your class
 
 
 class AnnotationParser:
-    def __init__(self, txt_path: Union[str, PathLike], expect_confidence: bool = True):
+    def __init__(self, txt_path: Union[str, PathLike]):
         self.txt_path = str(txt_path)
-        self.expect_confidence = expect_confidence
+ 
         self._check_existence()
         self._collection: Optional[AnnotationCollection] = None
 
@@ -93,10 +89,13 @@ class AnnotationParser:
 
     def _extract_confidence(self, coords: List[float]) -> Tuple[List[float], Optional[float]]:
         """
-        If expect_confidence=True and we have an odd number of floats, treat the last one as confidence.
+        If we have an odd number of floats, treat the last one as confidence.
         """
-        if self.expect_confidence and len(coords) % 2 == 1:
+        if  len(coords) % 2 == 1:
+
+
             return coords[:-1], coords[-1]
+            
         return coords, None
 
     def _extract_data(self, values: List[str]) -> Optional[Annotation]:
