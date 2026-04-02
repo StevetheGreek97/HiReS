@@ -42,7 +42,7 @@ Functions & methods of interest:
 
 Attributes:
 -----------
-- Supported extensions: .tif, .tiff, .png, .jpg
+- Supported extensions: .tif, .tiff, .png, .jpg, .jpeg
 
 Notes:
 ------
@@ -92,7 +92,7 @@ class ImageChunker:
     The class uses OpenCV for image manipulation and multiprocessing to parallelize
     chunking over multiple images.
 
-    Supported image formats: .tif, .tiff, .png
+    Supported image formats: .tif, .tiff, .png, .jpg, .jpeg
 
     Attributes:
         input_path (str): Path to a single image file or a directory of images.
@@ -116,7 +116,7 @@ class ImageChunker:
             input_path (str): Path to a single image or a folder containing images.
         """
         self.input_path = input_path
-        self.extensions = (".tif", ".tiff", ".png", ".jpg")
+        self.extensions = (".tif", ".tiff", ".png", ".jpg", ".jpeg")
 
     def _get_chunk_positions(self, width: int, height: int, chunk_size: tuple, overlap: int) -> tuple[list[int], list[int]]:
         """

@@ -150,6 +150,15 @@ class SegmentationPipeline(BasePipeline):
                     chunk_size=self.cfg.chunk_size,
                     overlap=self.cfg.overlap,
                 )
+                chunk_imgs = sorted(
+                    p for p in tmp_chunks.iterdir() if p.suffix.lower() in IMG_EXTS
+                )
+                self.logger.info("Chunks: %d", len(chunk_imgs))
+
+                if not chunk_imgs:
+                    raise FileNotFoundError(
+                        f"No chunk images were created in {tmp_chunks} for {image_path}."
+                    )
 
             with log_step("Prediction", self.logger):
                 with spinner("Predicting"):
@@ -208,7 +217,7 @@ class SegmentationPipeline(BasePipeline):
                     denormalize=True,
                 )
 
-                df = kept_coll.shape_descriptors(crops=crops)
+                df = kept_coll.shape_descriptors(crops=crops, image=str(image_path))
                 shapes_csv = Path(self.cfg.output_dir) / f"{image_stem}_shapes.csv"
                 df.to_csv(shapes_csv, index=False)
 

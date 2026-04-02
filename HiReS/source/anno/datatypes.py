@@ -125,7 +125,7 @@ class Annotation:
                                     fill=False, lw=1.5, ls="--", label="Isoperimetric Circle")
                 ax.add_patch(circle)
                 ax.fill(xx, yy, color="#3498db", alpha=0.6, label="Object")
-                ax.set_title(f"Circularity = {m['circularity']:.3f}\n$4\pi A / P^2$", fontsize=10)
+                ax.set_title(f"Circularity = {m['circularity']:.3f}\n$4\\pi A / P^2$", fontsize=10)
 
             elif mode == "dimensions":
                 # Improved OBB visualization with dimension arrows
@@ -312,6 +312,27 @@ class AnnotationCollection:
 
     def extend(self, anns: Iterable[Annotation]):
         self.annotations.extend(anns)
+
+    def get_by_index(self, index: int) -> "AnnotationCollection":
+        """
+        Return annotations whose class_id matches the given index.
+
+        Parameters
+        ----------
+        index : int
+            Class index (class_id) to filter by.
+
+        Returns
+        -------
+        AnnotationCollection
+            New collection containing only matching annotations.
+        """
+        filtered = [ann for ann in self.annotations if ann.class_id == index]
+        return AnnotationCollection(filtered, collection_name=self.collection_name)
+
+    def filter(self, index: int) -> "AnnotationCollection":
+        """Alias for get_by_index."""
+        return self.get_by_index(index)
 
 
     @property
@@ -534,10 +555,19 @@ class AnnotationCollection:
         return AnnotationCollection(filtered, collection_name=self.collection_name)
 
 
-    def shape_descriptors(self, crops: list[str] | None = None) -> pd.DataFrame:
+    def shape_descriptors(
+        self,
+        crops: list[str] | None = None,
+        image: Union[str, Path, np.ndarray, Image.Image, Tuple[int, int]] | None = None,
+        denormalize: bool = False,
+    ) -> pd.DataFrame:
         """
         Compute geometric shape descriptors for every Annotation in this collection,
         include collection_name, and return a pandas DataFrame.
+
+        By default, descriptors are measured in pixel units. If the stored polygons
+        are normalized to [0, 1], pass the source image via `image` so the polygons
+        can be denormalized before measurement.
 
         If `crops` is provided (list of file paths from `save_crops`), a
         'crop_path' column is added and linked to the corresponding annotation
@@ -547,6 +577,13 @@ class AnnotationCollection:
         ----------
         crops : list[str] | None
             Optional list of crop file paths, typically as returned by `save_crops`.
+        image : str | Path | np.ndarray | PIL.Image.Image | tuple[int, int] | None
+            Source image used to convert normalized polygons to pixel coordinates.
+            Required when `denormalize=True`. A `(width, height)` tuple is also accepted.
+        denormalize : bool, default True
+            If True, rescale polygons from normalized [0,1] coordinates to pixel
+            coordinates before computing descriptors. Set to False when polygons
+            are already stored in pixel coordinates.
 
         Returns
         -------
@@ -554,6 +591,25 @@ class AnnotationCollection:
             Each row = one annotation with full set of shape descriptors,
             optionally including 'crop_path'.
         """
+        img_width: int | None = None
+        img_height: int | None = None
+        if denormalize:
+            if image is None:
+                raise ValueError(
+                    "image is required when denormalize=True so shape descriptors "
+                    "can be measured in pixels."
+                )
+
+            if isinstance(image, Image.Image):
+                img_width, img_height = image.size
+            elif isinstance(image, tuple) and len(image) == 2:
+                img_width, img_height = image
+            elif isinstance(image, np.ndarray):
+                img_height, img_width = image.shape[:2]
+            else:
+                with Image.open(image) as pil_img:
+                    img_width, img_height = pil_img.size
+
         # Map idx -> crop_path by parsing filenames like "..._idx3_class1_conf0.95.png"
         idx_to_crop: dict[int, str] = {}
         if crops is not None:
@@ -574,6 +630,11 @@ class AnnotationCollection:
 
         for idx, ann in enumerate(self.annotations):
             poly = ann.polygon
+            poly_metrics = (
+                denormalize_polygon(poly, img_width, img_height)
+                if denormalize and not poly.is_empty
+                else poly
+            )
 
             base_row: Dict[str, Any] = {
                 "collection_name": collection_name,
@@ -582,7 +643,7 @@ class AnnotationCollection:
                 "confidence": ann.confidence,
             }
 
-            if poly.is_empty:
+            if poly_metrics.is_empty:
                 row = {
                     **base_row,
                     "area": 0.0,
@@ -604,12 +665,12 @@ class AnnotationCollection:
                 }
             else:
                 # ---- Basic metrics ----
-                area = poly.area
-                perimeter = poly.length
-                cx, cy = poly.centroid.x, poly.centroid.y
+                area = poly_metrics.area
+                perimeter = poly_metrics.length
+                cx, cy = poly_metrics.centroid.x, poly_metrics.centroid.y
 
                 # ---- Axis-aligned bounding box ----
-                minx, miny, maxx, maxy = poly.bounds
+                minx, miny, maxx, maxy = poly_metrics.bounds
                 bbox_width = maxx - minx
                 bbox_height = maxy - miny
                 bbox_area = bbox_width * bbox_height
@@ -619,7 +680,7 @@ class AnnotationCollection:
                 extent = area / bbox_area if bbox_area > 0 else np.nan
 
                 # ---- Convex hull ----
-                hull = poly.convex_hull
+                hull = poly_metrics.convex_hull
                 convex_area = hull.area
                 solidity = area / convex_area if convex_area > 0 else np.nan
 
@@ -635,7 +696,7 @@ class AnnotationCollection:
                 )
 
                 # ---- Oriented bounding box (min rotated rect) ----
-                mrr = poly.minimum_rotated_rectangle
+                mrr = poly_metrics.minimum_rotated_rectangle
                 mrr_x, mrr_y = mrr.exterior.coords.xy
                 coords = list(zip(mrr_x, mrr_y))[:-1]  # drop closing point
 
