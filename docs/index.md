@@ -31,21 +31,7 @@ HiReS closes that gap by producing structured, reproducible morphometric dataset
 
 HiReS exposes three CLI commands, each covering a different subset of the four pipeline stages:
 
-```
-            ┌─────────────┐  ┌──────────────────┐  ┌─────────────┐  ┌─────────────┐
-            │             │  │                  │  │             │  │             │
-Image ─────►│ 1·Chunking  ├─►│  2·Inference &   ├─►│  3·Merging  ├─►│  4·Output   │
-            │             │  │    Filtering     │  │    (NMS)    │  │             │
-            └─────────────┘  └──────────────────┘  └─────────────┘  └─────────────┘
-            ╰─────────────╯
-              hires chunk
-
-            ╰─────────────────────────────────────────────────────────────────────╯
-                                         hires run
-
-                                                                    ╰─────────────╯
-                                                                      hires plot
-```
+![Pipeline overview](assets/pipeline_overview.png)
 
 | Stage | What happens |
 |-------|-------------|

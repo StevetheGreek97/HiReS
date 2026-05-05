@@ -8,23 +8,9 @@ HiReS processes each image through four sequential stages. This page describes e
 
 The diagram below shows which pipeline stages each CLI command executes.
 
-```
-            ┌─────────────┐  ┌──────────────────┐  ┌─────────────┐  ┌─────────────┐
-            │             │  │                  │  │             │  │             │
-Image ─────►│ 1·Chunking  ├─►│  2·Inference &   ├─►│  3·Merging  ├─►│  4·Output   │
-            │             │  │    Filtering     │  │    (NMS)    │  │             │
-            └─────────────┘  └──────────────────┘  └─────────────┘  └─────────────┘
-            ╰─────────────╯
-              hires chunk
+![Pipeline overview](assets/pipeline_overview.png)
 
-            ╰─────────────────────────────────────────────────────────────────────╯
-                                         hires run
-
-                                                                    ╰─────────────╯
-                                                                      hires plot †
-```
-
-† `hires plot` skips inference — it reads an existing `.txt` annotation produced by `hires run` and regenerates the overlay image without re-running segmentation.
+`hires plot` skips inference — it reads an existing `.txt` annotation produced by `hires run` and regenerates the overlay image without re-running segmentation.
 
 | Command | Stages | Input | Output |
 |---------|--------|-------|--------|
