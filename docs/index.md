@@ -1,18 +1,71 @@
-# HiReS Documentation
+# HiReS
 
-**High-Resolution Image Segmentation and Analysis Pipeline**
-
-HiReS is a modular Python package and CLI tool for automated segmentation of large microscopy or biological images. It combines YOLO-based instance segmentation with geometry-aware post-processing (Shapely) to handle images that exceed typical GPU memory limits.
+**High-Resolution Segmentation — Automated Morphometric Trait Extraction from Large Plankton Images**
 
 ---
 
-## How it works
+## What is HiReS?
 
-Large images are split into overlapping tiles, each tile is run through YOLO, and the resulting polygons are then merged back into full-image coordinates with edge filtering and IoU-based NMS applied.
+HiReS is an open-source Python library and CLI tool for automated extraction of quantitative morphometric traits from high-resolution biological images. It is designed for ecological workflows where body size, shape, and structural complexity must be measured across large numbers of individuals — a task that is impractical with manual microscopy alone.
+
+The core challenge HiReS addresses is memory: high-resolution scans commonly exceed 10,000 × 10,000 pixels, which is too large for a single neural-network forward pass on standard hardware. HiReS solves this by partitioning images into overlapping chunks, running YOLO-based instance segmentation on each chunk, and reconstructing polygon annotations in full-image space with duplicate removal and edge filtering.
+
+The resulting per-individual polygon outlines are converted into a suite of geometric descriptors — area, perimeter, body dimensions, circularity, convexity, and solidity — that are directly relevant to functional trait-based analyses in plankton ecology.
+
+---
+
+## Why automated trait extraction?
+
+Functional trait-based approaches (FTBAs) link measurable phenotypic properties to ecological performance and demographic processes. In planktonic systems, morphometric traits are especially informative:
+
+- **Body size** governs metabolic scaling and energy transfer efficiency
+- **Shape complexity** influences feeding performance, predator avoidance, and sinking rates
+
+Traditional manual microscopy measures only a small subset of individuals per sample, which limits statistical power and introduces observer-dependent variation. Modern imaging platforms such as flatbed scanners, FlowCAM, and ZooScan can digitize entire samples in a single scan — but the gap between image acquisition and quantitative trait extraction has remained wide.
+
+HiReS closes that gap by producing structured, reproducible morphometric datasets from full-resolution images on standard laptop hardware (no GPU required).
+
+---
+
+## Pipeline overview
 
 ```
-Image → Chunking → YOLO Prediction → Edge Filter → Unify → NMS → Outputs
+Input image
+    │
+    ▼
+┌─────────────────────────┐
+│  1. Chunking             │  Overlapping 1024×1024 px tiles
+└─────────────────────────┘
+    │
+    ▼
+┌─────────────────────────┐
+│  2. Inference & Filter   │  YOLO segmentation + edge filter
+└─────────────────────────┘
+    │
+    ▼
+┌─────────────────────────┐
+│  3. Merging (NMS)        │  Coordinate unification + IoU dedup
+└─────────────────────────┘
+    │
+    ▼
+┌─────────────────────────┐
+│  4. Output               │  CSV traits + annotations + overlays
+└─────────────────────────┘
 ```
+
+See [Pipeline](pipeline.md) for a detailed description of each stage, and [Morphometric Descriptors](morphometrics.md) for the mathematical definitions of all computed traits.
+
+---
+
+## Key features
+
+- Overlapping tile chunking for arbitrarily large images (no GPU required)
+- Class-agnostic: works with any YOLO segmentation model
+- Geometry-based edge filtering removes boundary artefacts
+- Polygon-level NMS with spatial indexing (STRtree) for scalable deduplication
+- Six morphometric descriptors per object with optional physical unit conversion (µm, mm, …)
+- Three CLI commands: `hires run`, `hires chunk`, `hires plot`
+- Full Python API for programmatic access and downstream analysis
 
 ---
 
@@ -20,24 +73,21 @@ Image → Chunking → YOLO Prediction → Edge Filter → Unify → NMS → Out
 
 | Page | Description |
 |------|-------------|
-| [Installation](installation.md) | Setup and requirements |
+| [Installation](installation.md) | Install from PyPI or source |
 | [Quickstart](quickstart.md) | Run your first segmentation in minutes |
 | [CLI Reference](cli.md) | All CLI commands and flags |
-| [Python API](api.md) | Using HiReS from Python |
+| [Python API](api.md) | Using HiReS programmatically |
 | [Configuration](configuration.md) | All `Settings` parameters |
-| [Pipeline Architecture](pipeline.md) | How the pipeline works internally |
-| [Outputs](outputs.md) | Output files and formats |
-| [Data Models](models.md) | Annotation, Collection, and Album classes with examples |
-| [Evaluation](evaluation.md) | Pair, Bundle, IoUMatrix, CollectionMatchMaker, AlbumMatchMaker |
+| [Pipeline](pipeline.md) | How the four pipeline stages work |
+| [Morphometric Descriptors](morphometrics.md) | Definitions and formulas for all computed traits |
+| [Outputs](outputs.md) | Output files and CSV column descriptions |
+| [Data Models](models.md) | `Annotation`, `Collection`, and `Album` classes |
+| [Evaluation](evaluation.md) | Comparing predictions to ground truth |
 
 ---
 
-## Key features
+## Citation
 
-- Overlapping tile chunking for arbitrarily large images
-- YOLO instance segmentation per chunk
-- Polygon edge filtering, coordinate unification, and IoU-based NMS
-- Overlay rendering for quick QA
-- Per-object crops and shape descriptor CSV (area, perimeter, circularity, solidity, OBB dimensions)
-- Physical unit support (DPI-aware measurements in nm, μm, mm, etc.)
-- CLI, Python API, and optional Streamlit UI
+If you use HiReS in your research, please cite:
+
+> Mavrianos S., Teurlincx S., Declerck S.A.J., Otte K.A. (2025). *HiReS: A Method for Automated Morphometric Trait Extraction from High-Resolution Plankton Images.*

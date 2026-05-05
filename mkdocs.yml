@@ -1,5 +1,5 @@
 site_name: HiReS
-site_description: High-Resolution Image Segmentation and Analysis Pipeline
+site_description: Automated Morphometric Trait Extraction from High-Resolution Plankton Images
 site_url: https://stevethegreek97.github.io/HiReS/
 repo_url: https://github.com/StevetheGreek97/HiReS
 repo_name: StevetheGreek97/HiReS
@@ -8,14 +8,14 @@ theme:
   name: material
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: teal
+      accent: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: teal
+      accent: teal
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -23,25 +23,28 @@ theme:
     - navigation.tabs
     - navigation.sections
     - navigation.top
+    - navigation.indexes
     - search.highlight
     - content.code.copy
+
+use_directory_urls: false
 
 nav:
   - Home: index.md
   - Getting Started:
       - Installation: installation.md
       - Quickstart: quickstart.md
-  - Usage:
+  - User Guide:
       - CLI Reference: cli.md
       - Python API: api.md
       - Configuration: configuration.md
-  - Internals:
-      - Pipeline Architecture: pipeline.md
+  - How It Works:
+      - Pipeline: pipeline.md
+      - Morphometric Descriptors: morphometrics.md
+      - Outputs: outputs.md
+  - Python Library:
       - Data Models: models.md
       - Evaluation: evaluation.md
-  - Outputs: outputs.md
-
-use_directory_urls: false
 
 markdown_extensions:
   - admonition
@@ -50,6 +53,13 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
   - tables
   - toc:
       permalink: true
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css: []
