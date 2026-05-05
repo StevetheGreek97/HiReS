@@ -41,6 +41,8 @@ nav:
       - Evaluation: evaluation.md
   - Outputs: outputs.md
 
+use_directory_urls: false
+
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
