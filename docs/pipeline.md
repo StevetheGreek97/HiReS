@@ -4,6 +4,36 @@ HiReS processes each image through four sequential stages. This page describes e
 
 ---
 
+## Workflow overview
+
+The diagram below shows which pipeline stages each CLI command executes.
+
+```
+            ┌─────────────┐  ┌──────────────────┐  ┌─────────────┐  ┌─────────────┐
+            │             │  │                  │  │             │  │             │
+Image ─────►│ 1·Chunking  ├─►│  2·Inference &   ├─►│  3·Merging  ├─►│  4·Output   │
+            │             │  │    Filtering     │  │    (NMS)    │  │             │
+            └─────────────┘  └──────────────────┘  └─────────────┘  └─────────────┘
+            ╰─────────────╯
+              hires chunk
+
+            ╰─────────────────────────────────────────────────────────────────────╯
+                                         hires run
+
+                                                                    ╰─────────────╯
+                                                                      hires plot †
+```
+
+† `hires plot` skips inference — it reads an existing `.txt` annotation produced by `hires run` and regenerates the overlay image without re-running segmentation.
+
+| Command | Stages | Input | Output |
+|---------|--------|-------|--------|
+| `hires run` | 1 → 2 → 3 → 4 | Image or directory + model weights | CSV traits, `.txt` annotations, overlays |
+| `hires chunk` | 1 only | Image or directory | Tile PNGs |
+| `hires plot` | 4 only | Image + pre-existing `.txt` + model weights | Overlay image |
+
+---
+
 ## Stage 1 — Chunking
 
 The full-resolution image is partitioned into a regular grid of overlapping tiles using a sliding-window approach.

@@ -29,31 +29,32 @@ HiReS closes that gap by producing structured, reproducible morphometric dataset
 
 ## Pipeline overview
 
+HiReS exposes three CLI commands, each covering a different subset of the four pipeline stages:
+
 ```
-Input image
-    │
-    ▼
-┌─────────────────────────┐
-│  1. Chunking             │  Overlapping 1024×1024 px tiles
-└─────────────────────────┘
-    │
-    ▼
-┌─────────────────────────┐
-│  2. Inference & Filter   │  YOLO segmentation + edge filter
-└─────────────────────────┘
-    │
-    ▼
-┌─────────────────────────┐
-│  3. Merging (NMS)        │  Coordinate unification + IoU dedup
-└─────────────────────────┘
-    │
-    ▼
-┌─────────────────────────┐
-│  4. Output               │  CSV traits + annotations + overlays
-└─────────────────────────┘
+            ┌─────────────┐  ┌──────────────────┐  ┌─────────────┐  ┌─────────────┐
+            │             │  │                  │  │             │  │             │
+Image ─────►│ 1·Chunking  ├─►│  2·Inference &   ├─►│  3·Merging  ├─►│  4·Output   │
+            │             │  │    Filtering     │  │    (NMS)    │  │             │
+            └─────────────┘  └──────────────────┘  └─────────────┘  └─────────────┘
+            ╰─────────────╯
+              hires chunk
+
+            ╰─────────────────────────────────────────────────────────────────────╯
+                                         hires run
+
+                                                                    ╰─────────────╯
+                                                                      hires plot
 ```
 
-See [Pipeline](pipeline.md) for a detailed description of each stage, and [Morphometric Descriptors](morphometrics.md) for the mathematical definitions of all computed traits.
+| Stage | What happens |
+|-------|-------------|
+| 1 · Chunking | Full image split into overlapping 1024 × 1024 px tiles |
+| 2 · Inference & Filter | YOLO segmentation per tile; truncated boundary polygons removed |
+| 3 · Merging (NMS) | Tile coordinates unified to full-image space; duplicates removed via IoU |
+| 4 · Output | Morphometric descriptors computed; CSV, annotations, and overlays written |
+
+See [Pipeline](pipeline.md) for the coordinate transformations, edge filter logic, and NMS algorithm used in each stage. See [Morphometric Descriptors](morphometrics.md) for the mathematical definitions of all computed traits.
 
 ---
 
