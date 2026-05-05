@@ -1,4 +1,3 @@
-# HiReS/config.py
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -14,6 +13,12 @@ class Settings:
     overlap: int = 150
     edge_threshold: float = 1e-2
     iou_thresh: float = 0.7
+    match_iou: float = 0.5
+    save_crops: bool = False
+    dpi: float | None = None
+    unit: str | None = None
     debug: bool = False
     recursive: bool = False
     ann: str = ''  # Path to annotation file for plotting
+    pred_ann: str = ''  # Path to prediction annotation file for comparison
+    gt_ann: str = ''  # Path to ground-truth annotation file for comparison
