@@ -65,6 +65,7 @@ hires <command> [options]
 | `hires chunk` | Split images into overlapping chunks |
 | `hires run` | Run the full segmentation pipeline (file or directory) |
 | `hires plot` | Render segmentation overlays |
+| `hires compare` | Visualize TP/FP/FN by comparing predictions to ground truth |
 
 ---
 
@@ -120,7 +121,7 @@ hires run --source data/ --model models/DaphnAI.pt --out results/
 | `--edge-thr` | Border-touch filtering threshold | `1e-2` |
 | `--iou-thr` | IoU threshold for NMS | `0.7` |
 | `--recursive` | Recurse into subdirectories | `False` |
-| `--debug` | Parsed by CLI but not wired; set `Settings(debug=True)` in Python API | `False` |
+| `--debug` | Save intermediate debug artifacts under `<out>/<image>_debug/` | `False` |
 | `--workers` | Parsed by CLI but not used; directory processing is sequential | `1` |
 
 ---
@@ -139,6 +140,32 @@ hires plot --image raw_image.tif --ann results/raw_image.txt --out results/ --mo
 | `--ann` | YOLO-format annotation file |
 | `--out` | Output directory (writes `<image>_annotated.tif` inside) |
 | `--model` | Required: YOLO weights or a `data.yaml` file used for class names |
+
+---
+
+### `hires compare`
+Compare a prediction file against a ground-truth file and render color-coded TP/FP/FN overlays.
+
+```bash
+hires compare --pred pred.txt --gt gt.txt --model models/DaphnAI.pt --img raw_image.tif --out results/
+```
+
+**Arguments:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--pred` | YOLO-format prediction annotations | — |
+| `--gt` | YOLO-format ground-truth annotations | — |
+| `--img`, `--image` | Path to the source image | — |
+| `--model` | YOLO weights or `data.yaml` used for class names | — |
+| `--out` | Output directory for overlays and summary | `results` |
+| `--iou-thr` | IoU threshold used to count a prediction as TP | `0.5` |
+
+This command writes:
+- `<out>/<image>_compare_overlay.tif` → combined TP/FP/FN overlay
+- `<out>/<image>_compare_tp.tif` → matched predictions (TP) with matched GT outlines
+- `<out>/<image>_compare_fp.tif` → unmatched predictions (FP)
+- `<out>/<image>_compare_fn.tif` → unmatched GT polygons (FN)
+- `<out>/<image>_compare_summary.json` → counts and matched index pairs
 
 ---
 

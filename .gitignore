@@ -11,7 +11,11 @@ dist/
 .DS_Store
 # Model weights
 *.pt
+# MkDocs generated site
+site/
 # Temporary outputs
 *.log
 *.tmp
 *.tif_chunk*
+.codex
+test/

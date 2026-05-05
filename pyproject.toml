@@ -1,22 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "HiReSeg"
-version = "0.4.0"
-description = "High-Resolution Image Segmentation Pipeline"
-readme = "README.md"
+name = "hires"
+version = "0.1.0"
 requires-python = ">=3.10"
-authors = [{ name = "Stylianos Mavrianos", email = "stylianosmavrianos@gmail.com" }]
-dependencies = [
-  "ultralytics>=8.0.0",
-  "Pillow>=10.0.0",
-  "shapely>=2.0.0",
-  "numpy>=1.25.0",
-  "matplotlib>=3.8.0",
-  "tqdm>=4.66.0",
-  "pandas>=2.2.2"
-]
 
 [project.scripts]
-hires = "HiReS.source.cli:main"
+hires = "hires.cli:main"
 
-[project.urls]
-Homepage = "https://github.com/StevetheGreek97/HiReS.git"
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [".venv*", "test*"]
+
+[tool.setuptools.package-data]
+hires = ["py.typed"]
