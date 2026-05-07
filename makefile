@@ -5,9 +5,10 @@
 
 PYTHON = python3
 VENV   = .venv
-ACT    = . $(VENV)/bin/activate
-BUILD  = $(ACT); python -m build
-TWINE  = $(ACT); python -m twine
+PY     = $(VENV)/bin/python
+PIP    = $(PY) -m pip
+BUILD  = $(PY) -m build
+TWINE  = $(PY) -m twine
 
 # Default goal
 .DEFAULT_GOAL := help
@@ -45,11 +46,11 @@ venv:
 	@echo "Virtual environment created in $(VENV)"
 	@echo "Activate it using:"
 	@echo "  source $(VENV)/bin/activate"
-	@$(ACT); pip install --upgrade pip
+	@$(PIP) install --upgrade pip
 
 install:
 	@echo "Installing HiReS in editable mode..."
-	@$(ACT); pip install -e .
+	@$(PIP) install -e .
 	@echo "Installed successfully!"
 
 # ------------------------------------------------------------
@@ -58,11 +59,11 @@ install:
 
 run:
 	@echo "Running HiReS CLI..."
-	@$(ACT); hires --help
+	@$(VENV)/bin/hires --help
 
 test:
 	@echo "Testing import and version..."
-	@$(ACT); python -c "import HiReS; print('HiReS version:', getattr(HiReS, '__version__', 'unknown'))"
+	@$(PY) -c "import HiReS; print('HiReS version:', getattr(HiReS, '__version__', 'unknown'))"
 
 # ------------------------------------------------------------
 # Maintenance & Publishing
@@ -80,7 +81,7 @@ distclean: clean
 
 deps-publish:
 	@echo "Installing build & twine..."
-	@$(ACT); pip install --upgrade build twine
+	@$(PIP) install --upgrade build twine
 	@echo "Done."
 
 # Build both sdist and wheel from a clean state
@@ -92,12 +93,12 @@ build: distclean deps-publish
 
 # Convenience targets if you ever want them separately
 wheel:
-	@$(ACT); python -m pip install --upgrade build
-	@$(ACT); python -m build --wheel
+	@$(PIP) install --upgrade build
+	@$(BUILD) --wheel
 
 sdist:
-	@$(ACT); python -m pip install --upgrade build
-	@$(ACT); python -m build --sdist
+	@$(PIP) install --upgrade build
+	@$(BUILD) --sdist
 
 # Upload to TestPyPI (recommended first)
 release-test: build

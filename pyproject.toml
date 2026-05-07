@@ -3,9 +3,21 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hires"
-version = "0.1.0"
+name = "hireseg"
+version = "1.0.0"
 requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.1",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "opencv-python>=4.10",
+    "shapely>=2.1",
+    "ultralytics>=8.3",
+    "tqdm>=4.66",
+    "pyyaml>=6.0",
+    "scipy>=1.14",
+    "SkillMetrics>=1.2",
+]
 
 [project.scripts]
 hires = "hires.cli:main"
