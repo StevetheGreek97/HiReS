@@ -15,6 +15,7 @@ class YOLOSegPredictor:
         conf: float = 0.5,
         imgsz: int = 1024,
         device: str = "cpu",
+        **kwargs,
     ) -> None:
         for result in self.model(
             image_dir,
@@ -24,6 +25,7 @@ class YOLOSegPredictor:
             visualize=False,
             imgsz=imgsz,
             device=device,
+            **kwargs,
         ):
             image_name = os.path.splitext(os.path.basename(result.path))[0]
             result.save_txt(f"{self.output_dir}/{image_name}.txt", save_conf=True)
