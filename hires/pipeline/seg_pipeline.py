@@ -39,6 +39,19 @@ class SegmentationPipeline(BasePipeline):
         self.logger.info("Run config saved → %s", log_path)
 
     def run(self):
+        if isinstance(self.cfg.source, (list, tuple)):
+            saved = self.cfg.source
+            try:
+                for item in saved:
+                    if not Path(item).exists():
+                        self.logger.warning("Source not found, skipping: %s", item)
+                        continue
+                    self.cfg.source = item
+                    self.run()
+            finally:
+                self.cfg.source = saved
+            return
+
         src = Path(self.cfg.source)
         images = self._iter_images()
 

@@ -6,6 +6,8 @@ def plot_confusion_matrix(
     cmap: str = 'Blues',
     figsize: tuple = (7, 6),
     title: str = 'Confusion Matrix',
+    save: str | Path | None = None,
+    show: bool = False,
 ) -> None:
     """
     Plot a (nc+1)×(nc+1) YOLO confusion matrix.
@@ -82,7 +84,11 @@ def plot_confusion_matrix(
     ax.set_ylabel('Predicted', fontsize=11)
     ax.set_title(title, fontsize=13, pad=12)
     plt.tight_layout()
-    plt.show()
+
+    if save:
+        plt.savefig(save, dpi=300)
+    if show:
+        plt.show()
 
 def plot_training_curves(
     csv_path: str | Path,

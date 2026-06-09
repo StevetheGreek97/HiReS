@@ -230,7 +230,6 @@ def _show_or_close_matplotlib(figure: Any, show: bool) -> None:
     else:
         plt.close(figure)
 
-
 def _show_plotnine(plot: Any, show: bool) -> None:
     if not show:
         return
@@ -246,14 +245,12 @@ def _show_plotnine(plot: Any, show: bool) -> None:
     except Exception:
         print(plot)
 
-
 def _sample_column_name(data: Any) -> str | None:
     if "sample" in data.columns:
         return "sample"
     if "file_name" in data.columns:
         return "file_name"
     return None
-
 
 def _ensure_sample_column(data: Any) -> Any:
 
@@ -269,7 +266,6 @@ def _ensure_sample_column(data: Any) -> Any:
     frame["sample"] = frame[sample_column].astype(str)
     return frame
 
-
 def _normalize_align(align: str | None) -> str | None:
     if align is None:
         return None
@@ -284,7 +280,6 @@ def _normalize_align(align: str | None) -> str | None:
     raise ValueError(
         "align must be one of {'median', 'mean', 'median_iqr', 'mean_std'}."
     )
-
 
 def _filter_samples(
     data: Any,
@@ -319,7 +314,6 @@ def _filter_samples(
             out = out[sample_series.isin(set(chosen))].copy()
 
     return out
-
 
 def _resolve_excluded_class_ids(
     exclude_classes: Sequence[int | str] | None,
@@ -360,7 +354,6 @@ def _resolve_excluded_class_ids(
 
     return excluded_ids
 
-
 def _class_items_for_frame(
     data: Any,
     *,
@@ -385,7 +378,6 @@ def _class_items_for_frame(
         (class_id, normalized_names.get(class_id, str(class_id)))
         for class_id in ordered_ids
     ]
-
 
 def _align_values(source: np.ndarray, target: np.ndarray, *, method: str) -> np.ndarray:
     source_array = np.asarray(source, dtype=float)
@@ -417,7 +409,6 @@ def _align_values(source: np.ndarray, target: np.ndarray, *, method: str) -> np.
         return (source_array - source_center) * (target_scale / source_scale) + target_center
 
     return source_array - source_center + target_center
-
 
 def _processed_descriptor_frame(
     data: Any,
@@ -525,7 +516,6 @@ def _processed_descriptor_frame(
 
     return frame, selected_columns, class_items
 
-
 def _histogram_bins(
     values: np.ndarray,
     bins: int | Sequence[float],
@@ -548,7 +538,6 @@ def _histogram_bins(
         pad = 0.5
     return np.linspace(value_min - pad, value_max + pad, int(bins) + 1)
 
-
 def _ecdf_xy(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     array = np.asarray(values, dtype=float)
     array = array[np.isfinite(array)]
@@ -557,7 +546,6 @@ def _ecdf_xy(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     x = np.sort(array)
     y = np.arange(1, array.size + 1, dtype=float) / float(array.size)
     return x, y
-
 
 def from_pairs_df(df: pd.DataFrame) -> pd.DataFrame:
     """Convert a :class:`PairInspector.pairs_df` result into the format expected by this module.
@@ -607,7 +595,6 @@ def from_pairs_df(df: pd.DataFrame) -> pd.DataFrame:
 
     return out
 
-
 def available_descriptor_columns(data: Any) -> list[str]:
     """
     Return descriptor names present on both the prediction and GT sides.
@@ -617,7 +604,6 @@ def available_descriptor_columns(data: Any) -> list[str]:
     ``["area", "perimeter", "solidity"]``.
     """
     return _descriptor_columns_in_order(data)
-
 
 def filter_descriptor_rows(
     data: Any,
@@ -665,7 +651,6 @@ def filter_descriptor_rows(
         filtered = filtered[filtered["file_name"].astype(str).isin(allowed_file_names)].copy()
 
     return filtered
-
 
 def descriptor_distribution_table(
     data: Any,
@@ -810,7 +795,6 @@ def descriptor_distribution_table(
     if "sample" in long_table.columns:
         sort_columns.insert(0, "sample")
     return long_table.sort_values(sort_columns).reset_index(drop=True)
-
 
 def distributions(
     data: Any,
@@ -1035,8 +1019,6 @@ def distributions(
     _show_plotnine(plot, show)
     return processed, plot
 
-
-
 def bias(
     data: Any,
     *,
@@ -1219,7 +1201,6 @@ def bias(
     _save_ggplot_if_requested(plot, save, "bias.png")
     _show_plotnine(plot, show)
     return bias_df
-
 
 def bland_altman(
     data: Any,
@@ -1485,11 +1466,7 @@ def bland_altman(
                 x_rel, y_rel, ha, va = stats_box_anchor(location)
                 x_text = x_lo + x_rel * (x_hi - x_lo)
                 y_text = y_lo + y_rel * (y_hi - y_lo)
-                label = (
-                    f"mean bias={mean_diff:.3g}\n"
-                    f"scale={float(info['scale']):.3g}\n"
-                    f"slope={slope_text}"
-                )
+                label = f"slope={slope_text}"
                 stats_rows.append(
                     {
                         "species": species_label,
@@ -1633,7 +1610,6 @@ def bland_altman(
     _show_plotnine(plot, show)
     return points_df, plot
 
-
 def _draw_curved_rms_label(
     axis: Any,
     *,
@@ -1677,7 +1653,6 @@ def _draw_curved_rms_label(
             rotation_mode="anchor",
             fontweight="bold",
         )
-
 
 def taylor_plot(
     data: Any,
@@ -2031,7 +2006,6 @@ def taylor_plot(
     _show_or_close_matplotlib(figure, show)
     return metrics_df, figure
 
-
 def target_diagram(
     data: Any,
     *,
@@ -2370,11 +2344,9 @@ def target_diagram(
     _show_or_close_matplotlib(figure, show)
     return metrics_df, figure
 
-
 def target_plot(*args, **kwargs):
     """Alias for :func:`target_diagram`."""
     return target_diagram(*args, **kwargs)
-
 
 def per_sample_abundance(
     data: Any,
@@ -2441,7 +2413,6 @@ def per_sample_abundance(
         output.to_csv(output_path, index=False)
 
     return output
-
 
 def plot_per_sample_abundance(
     data: Any,

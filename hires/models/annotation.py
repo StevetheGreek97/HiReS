@@ -32,10 +32,33 @@ class Annotation:
     confidence: float | None = None
     dpi: float | None = None
     unit: str | None = None
+    image_width: int | None = None
+    image_height: int | None = None
 
-    def set_scale(self, dpi: float | None = None, unit: str | None = None) -> None:
+    def set_scale(
+        self,
+        dpi: float | None = None,
+        unit: str | None = None,
+        image_width: int | None = None,
+        image_height: int | None = None,
+    ) -> None:
         self.dpi = dpi
         self.unit = unit
+        self.image_width = image_width
+        self.image_height = image_height
+
+    @property
+    def _pixel_polygon(self) -> Polygon:
+        """Polygon in pixel coordinates, denormalized from YOLO normalized (0–1) coords."""
+        if self.image_width is None or self.image_height is None:
+            return self.polygon
+        from shapely import affinity
+        return affinity.scale(
+            self.polygon,
+            xfact=float(self.image_width),
+            yfact=float(self.image_height),
+            origin=(0, 0),
+        )
 
     @property
     def scale(self) -> float:
@@ -68,24 +91,23 @@ class Annotation:
     # Geometry properties
     @property
     def area(self) -> float:
-        return self.polygon.area * (self.scale ** 2)
+        return self._pixel_polygon.area * (self.scale ** 2)
 
     @property
     def perimeter(self) -> float:
-        return self.polygon.length * self.scale
+        return self._pixel_polygon.length * self.scale
 
     @property
     def convex_hull(self) -> Polygon:
-        # geometry itself is unchanged (still pixel coords)
         return self.polygon.convex_hull
 
     @property
     def convex_hull_area(self) -> float:
-        return self.convex_hull.area * (self.scale ** 2)
+        return self._pixel_polygon.convex_hull.area * (self.scale ** 2)
 
     @property
     def convex_hull_perimeter(self) -> float:
-        return self.convex_hull.length * self.scale
+        return self._pixel_polygon.convex_hull.length * self.scale
 
     # Shape descriptors properties
     @property
@@ -228,7 +250,17 @@ class Annotation:
     
     def to_dict(self) -> dict:
         s = self.scale
-        obb = self.oriented_bounding_box
+        pp = self._pixel_polygon
+        bb = BoundingBox.from_polygon(pp)
+
+        px_obb: OrientedBoundingBox | None = None
+        if not pp.is_empty and pp.is_valid:
+            obb_geom = pp.minimum_rotated_rectangle
+            if not obb_geom.is_empty and obb_geom.is_valid:
+                coords = list(obb_geom.exterior.coords)[:-1]
+                if len(coords) == 4:
+                    px_obb = OrientedBoundingBox(coords=tuple(coords))
+
         return {
             "class_id": self.class_id,
             "confidence": self.confidence,
@@ -237,8 +269,8 @@ class Annotation:
             "solidity": self.solidity,
             "convexity": self.convexity,
             "circularity": self.circularity,
-            "bbox_width": self.bounding_box.width * s,
-            "bbox_height": self.bounding_box.height * s,
-            "obb_width": obb.width_length[0] * s if obb is not None else None,
-            "obb_length": obb.width_length[1] * s if obb is not None else None,
+            "bbox_width": bb.width * s,
+            "bbox_height": bb.height * s,
+            "obb_width": px_obb.width_length[0] * s if px_obb is not None else None,
+            "obb_length": px_obb.width_length[1] * s if px_obb is not None else None,
         }

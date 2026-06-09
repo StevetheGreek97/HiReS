@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from collections import Counter
-from dataclasses import dataclass, field, replace, replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Callable
 from pathlib import Path
 
@@ -16,9 +16,18 @@ from shapely.strtree import STRtree
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    
-
     from .annotation import Annotation
+
+
+def _read_image_size(path: "str | os.PathLike[str]") -> "tuple[int | None, int | None]":
+    """Return (width, height) from an image file by reading only its header."""
+    try:
+        from PIL import Image as _Image
+        with _Image.open(path) as img:
+            return img.size
+    except Exception:
+        return None, None
+
 
 @dataclass
 class Collection:
@@ -29,6 +38,8 @@ class Collection:
     image_path: str | os.PathLike[str] | None = None
     dpi: float | None = None
     unit: str | None = None
+    image_width: int | None = None
+    image_height: int | None = None
 
     def __len__(self) -> int:
         return len(self.annotations)
@@ -64,22 +75,40 @@ class Collection:
 
         name = collection_name or Path(txt_path).stem
 
-        # always return a fresh instance with correct name
+        image_width, image_height = _read_image_size(image_path) if image_path is not None else (None, None)
+
         return cls(
             annotations=parsed.annotations,
             collection_name=name,
             image_path=image_path,
+            image_width=image_width,
+            image_height=image_height,
         )
 
     def set_scale(self, dpi: float | None = None, unit: str | None = None) -> None:
-        """
-        Apply the same scale settings to all annotations in the collection.
-        """
+        """Apply the same scale settings to all annotations in the collection."""
+        if self.image_width is None and self.image_height is None and self.image_path is not None:
+            self.image_width, self.image_height = _read_image_size(self.image_path)
+
+        if self.image_width is None or self.image_height is None:
+            import warnings
+            warnings.warn(
+                "image dimensions not available; scale not applied. "
+                "Pass image_dir when loading the Album/Collection.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+
         self.dpi = dpi
         self.unit = unit
-
         for annotation in self.annotations:
-            annotation.set_scale(dpi=dpi, unit=unit)
+            annotation.set_scale(
+                dpi=dpi,
+                unit=unit,
+                image_width=self.image_width,
+                image_height=self.image_height,
+            )
 
     def filter(
         self,
@@ -103,6 +132,8 @@ class Collection:
                 collection_name=f"{self.collection_name}_filtered" if self.collection_name else None,
                 dpi=self.dpi,
                 unit=self.unit,
+                image_width=self.image_width,
+                image_height=self.image_height,
             )
 
         if by is None:
@@ -134,6 +165,8 @@ class Collection:
             dpi=self.dpi,
             unit=self.unit,
             image_path=self.image_path,
+            image_width=self.image_width,
+            image_height=self.image_height,
         )
 
     def to_records(self) -> list[dict]:
@@ -146,6 +179,8 @@ class Collection:
             row = {
                 "collection_name": self.collection_name,
                 "image_path": str(self.image_path) if self.image_path else None,
+                "image_width": self.image_width,
+                "image_height": self.image_height,
                 "dpi": self.dpi,
                 "unit": self.unit,
                 **ann.to_dict(),
@@ -252,6 +287,8 @@ class Collection:
             image_path=self.image_path,
             dpi=self.dpi,
             unit=self.unit,
+            image_width=self.image_width,
+            image_height=self.image_height,
         )
 
     def nms(
@@ -285,6 +322,8 @@ class Collection:
                 dpi=self.dpi,
                 unit=self.unit,
                 image_path=self.image_path,
+                image_width=self.image_width,
+                image_height=self.image_height,
             )
 
         for ann in self.annotations:
@@ -332,6 +371,8 @@ class Collection:
             dpi=self.dpi,
             unit=self.unit,
             image_path=self.image_path,
+            image_width=self.image_width,
+            image_height=self.image_height,
         )
 
     def save_crops(

@@ -133,6 +133,8 @@ class Album:
                     "collection_name": collection.collection_name,
                     "n_annotations": len(collection),
                     "image_path": str(collection.image_path) if collection.image_path else None,
+                    "image_width": collection.image_width,
+                    "image_height": collection.image_height,
                     "dpi": collection.dpi,
                     "unit": collection.unit,
                 }
@@ -327,3 +329,72 @@ class Album:
         for col in self.collections:
             total.update(col.class_counts)
         return total
+
+    def balance_majority(
+        self,
+        majority_classes: set[int],
+        *,
+        target_ratio: float = 3.0,
+        seed: int = 42,
+    ) -> "Album":
+        """Return a new Album with pure-majority collections selectively removed.
+
+        A collection is *pure majority* when every annotation belongs to one of
+        ``majority_classes``, or has no annotations at all.  These are dropped
+        first because they carry no minority-class signal.
+
+        Collections are removed until::
+
+            total_majority_instances <= target_ratio * total_minority_instances
+
+        Parameters
+        ----------
+        majority_classes:
+            Over-represented class IDs to balance against.
+        target_ratio:
+            Maximum allowed majority-to-minority instance ratio after balancing.
+        seed:
+            Random seed for reproducible shuffling of candidates.
+
+        Returns
+        -------
+        Album
+            New Album with the same ``album_name``, reduced pure-majority
+            collections.
+        """
+        import random
+
+        rng = random.Random(seed)
+
+        pure_majority: list[Collection] = []
+        mixed: list[Collection] = []
+
+        for col in self.collections:
+            classes = {ann.class_id for ann in col.annotations}
+            if classes.issubset(majority_classes):  # empty set passes too
+                pure_majority.append(col)
+            else:
+                mixed.append(col)
+
+        min_total = sum(
+            sum(1 for ann in col if ann.class_id not in majority_classes)
+            for col in mixed
+        )
+        maj_running = sum(
+            sum(1 for ann in col if ann.class_id in majority_classes)
+            for col in mixed
+        )
+        target_maj = int(target_ratio * min_total)
+
+        rng.shuffle(pure_majority)
+        kept_pure: list[Collection] = []
+        for col in pure_majority:
+            col_maj = sum(1 for ann in col if ann.class_id in majority_classes)
+            if maj_running + col_maj <= target_maj:
+                kept_pure.append(col)
+                maj_running += col_maj
+
+        balanced = mixed + kept_pure
+        rng.shuffle(balanced)
+
+        return Album(collections=balanced, album_name=self.album_name)
