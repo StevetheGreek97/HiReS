@@ -136,5 +136,5 @@ if obb is not None:
     width, length = obb.width_length
 ```
 
-See [Data Models](models.md) for the full `Annotation`, `Collection`, and
-`Album` reference.
+See [Data Models](library/data-models.md) for the full `Annotation`,
+`Collection`, and `Album` reference.

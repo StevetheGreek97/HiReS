@@ -43,8 +43,18 @@ nav:
   - Reference:
       - Configuration: configuration.md
       - Output Files: outputs.md
-      - Data Models: models.md
-      - Evaluation: evaluation.md
+  - Python Library:
+      - Data Models:
+          - library/data-models.md
+          - Annotation: library/annotation.md
+          - Collection: library/collection.md
+          - Album: library/album.md
+          - Class Remapping: library/class-remapping.md
+      - Evaluation:
+          - library/evaluation.md
+          - Matching & Pairs: library/matching.md
+          - Metrics: library/metrics.md
+          - Trait Analysis: library/analysis.md
 
 markdown_extensions:
   - admonition

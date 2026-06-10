@@ -1,14 +1,8 @@
-# Evaluation
+# Matching & pairs
 
-The evaluation module compares a set of predicted annotations against ground-truth annotations. It produces `Pair` objects (one per detection decision), collects them in a `Bundle`, and supports export to DataFrames and CSV.
-
-```
-IoUMatrix  →  CollectionMatchMaker  →  Bundle[Pair, ...]
-                      ↑
-              AlbumMatchMaker  (many images at once)
-```
-
-All classes live under `hires.models.eval`.
+These classes turn two sets of annotations into per-detection `Pair` outcomes.
+The usual flow is `IoUMatrix → CollectionMatchMaker → Bundle`, with
+`AlbumMatchMaker` doing the same across a whole dataset.
 
 ---
 
@@ -81,7 +75,7 @@ print(pair.class_match)  # True if both have same class_id
 
 ## Bundle
 
-`hires.models.eval.bundle.Bundle`
+`hires.models.eval.Bundle`
 
 An ordered container of `Pair` objects with filtering and export helpers.
 
@@ -152,7 +146,7 @@ bundle.to_csv("evaluation.csv")
 ### Example
 
 ```python
-from hires.models.eval.bundle import Bundle
+from hires.models.eval import Bundle
 
 # Assume `bundle` was produced by CollectionMatchMaker (see below)
 
@@ -179,7 +173,7 @@ bundle.to_csv("results.csv")
 
 ## IoUMatrix
 
-`hires.models.eval.iou.IoUMatrix`
+`hires.models.eval.IoUMatrix`
 
 Computes pairwise intersection-over-union between all annotations in two `Collection` objects. Uses a Shapely `STRtree` for spatial indexing so only candidate pairs are evaluated.
 
@@ -218,7 +212,7 @@ matrix = iou_mat.require_dense()  # np.ndarray shape (n_left, n_right)
 Compute IoU between two Shapely polygons directly.
 
 ```python
-from hires.models.eval.iou import IoUMatrix
+from hires.models.eval import IoUMatrix
 
 score = IoUMatrix.compute_iou(polygon_a, polygon_b)
 ```
@@ -230,8 +224,8 @@ Return a dict with `values`, `dense`, and `shape`.
 ### Example
 
 ```python
-from hires.models.collection import Collection
-from hires.models.eval.iou import IoUMatrix
+from hires.models import Collection
+from hires.models.eval import IoUMatrix
 
 preds = Collection.read_txt("results/image.txt")
 gt    = Collection.read_txt("ground_truth/image.txt")
@@ -248,11 +242,12 @@ print(matrix.max(axis=1))     # best GT match for each prediction
 
 ## CollectionMatchMaker
 
-`hires.models.eval.match_maker.CollectionMatchMaker`
+`hires.models.eval.CollectionMatchMaker`
 
 Matches the annotations in two `Collection` objects (predictions vs. ground truth) using greedy IoU matching and produces a list of `Pair` outcomes.
 
 The matching algorithm:
+
 1. Build a full IoU matrix between left (predictions) and right (ground truth).
 2. Sort all overlapping pairs by IoU descending.
 3. Greedily assign each prediction and GT polygon to at most one match.
@@ -280,8 +275,8 @@ The matching algorithm:
 ### Example
 
 ```python
-from hires.models.collection import Collection
-from hires.models.eval.match_maker import CollectionMatchMaker
+from hires.models import Collection
+from hires.models.eval import CollectionMatchMaker
 
 preds = Collection.read_txt("results/image.txt")
 gt    = Collection.read_txt("ground_truth/image.txt")
@@ -309,7 +304,7 @@ print(df[["iou", "status"]].head())
 
 ## AlbumMatchMaker
 
-`hires.models.eval.match_maker.AlbumMatchMaker`
+`hires.models.eval.AlbumMatchMaker`
 
 Runs `CollectionMatchMaker` across every shared image in two `Album` objects and returns a single flat `Bundle` of all pairs.
 
@@ -338,8 +333,8 @@ bundle = album_matcher.bundle()
 ### Example
 
 ```python
-from hires.models.album import Album
-from hires.models.eval.match_maker import AlbumMatchMaker
+from hires.models import Album
+from hires.models.eval import AlbumMatchMaker
 
 preds_album = Album.from_dir("results/",        image_dir="data/images/", album_name="preds")
 gt_album    = Album.from_dir("ground_truth/",   image_dir="data/images/", album_name="gt")
@@ -365,115 +360,4 @@ bundle.to_csv("dataset_evaluation.csv")
 # High-IoU true positives only
 strong_tp = bundle.filter_by_iou(min_iou=0.8).filter_by_status("tp")
 print(f"Strong TPs (IoU ≥ 0.8): {len(strong_tp)}")
-```
-
----
-
-## Performance
-
-`hires.models.eval.performance.Performance`
-
-Computes detection metrics across two `Album` objects (ground truth and
-predictions) by running `CollectionMatchMaker` on each shared image.
-
-### Constructor
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `gt_album` | `Album` | Ground-truth album |
-| `pred_album` | `Album` | Predictions album |
-
-### Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `confusion_matrix(iou_threshold=0.5, background="background")` | `DataFrame` | GT (rows) × Pred (cols) confusion matrix; unmatched objects fall into the `background` row/column |
-| `per_class_report(iou_threshold=0.5, map_thresholds=None)` | `DataFrame` | Per-class `tp`, `fp`, `fn`, `precision`, `recall`, `f1`, `mAP@0.5`, `mAP@0.5-0.95`, plus an `all` summary row |
-| `map_at(iou_threshold=0.5)` | `DataFrame` | Average precision per class at a single IoU threshold |
-
-```python
-from hires.models.album import Album
-from hires.models.eval.performance import Performance
-
-gt    = Album.from_dir("ground_truth/", image_dir="images/", album_name="gt")
-preds = Album.from_dir("results/",      image_dir="images/", album_name="preds")
-
-perf = Performance(gt_album=gt, pred_album=preds)
-print(perf.per_class_report(iou_threshold=0.5))
-cm = perf.confusion_matrix(iou_threshold=0.5)
-```
-
-The confusion matrix can be rendered with
-`hires.viz.plot_confusion_matrix(cm, class_names)`.
-
----
-
-## PairInspector
-
-`hires.models.eval.inspector.PairInspector`
-
-Produces a descriptor-enriched pair table across two `Album` objects. Each row
-is one matching decision with the geometry of both the ground-truth (`left_*`)
-and predicted (`right_*`) annotation attached.
-
-```python
-from hires.models.eval.inspector import PairInspector
-
-inspector = PairInspector(gt_album=gt, pred_album=preds)
-pairs = inspector.pairs_df(iou_threshold=0.5)
-```
-
-`pairs_df` puts ground truth on the left, so its `status` values are remapped to
-`"tp"`, `"missed_gt"` (unmatched GT), `"fp"` (unmatched prediction), and
-`"misclassified"`. This table is the input expected by the trait-comparison
-functions in `hires.analysis`.
-
----
-
-## Trait analysis
-
-The `hires.analysis` module turns a `PairInspector.pairs_df` table into
-GT-vs-prediction trait comparisons: `distributions`, `bias`, `bland_altman`,
-`taylor_plot`, `target_diagram`, and `per_sample_abundance`. These functions
-require the optional `plotnine` dependency (and `SkillMetrics` for the Taylor
-diagram).
-
-```python
-from hires.analysis import distributions, bland_altman
-
-processed, plot = distributions(pairs, class_names={0: "D_pulex", 1: "S_vetulus"})
-```
-
----
-
-## Putting it all together
-
-```python
-from hires.models.album import Album
-from hires.models.eval.match_maker import AlbumMatchMaker
-
-# 1. Load predictions and ground truth
-preds = Album.from_dir("results/",       image_dir="images/", album_name="predictions")
-gt    = Album.from_dir("ground_truth/",  image_dir="images/", album_name="ground_truth")
-
-# 2. Match
-matcher = AlbumMatchMaker(preds, gt, iou_threshold=0.5, class_aware=False)
-bundle  = matcher.bundle()
-
-# 3. Count outcomes
-tp = len(bundle.filter_by_status("tp"))
-fp = len(bundle.filter_by_status("fp"))
-fn = len(bundle.filter_by_status("fn"))
-mc = len(bundle.filter_by_status("misclassified"))
-
-# 4. Metrics
-precision = tp / (tp + fp) if (tp + fp) else 0.0
-recall    = tp / (tp + fn) if (tp + fn) else 0.0
-f1        = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
-
-print(f"TP={tp}  FP={fp}  FN={fn}  Misclassified={mc}")
-print(f"Precision={precision:.3f}  Recall={recall:.3f}  F1={f1:.3f}")
-
-# 5. Save
-bundle.to_csv("full_evaluation.csv")
 ```

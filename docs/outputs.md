@@ -122,4 +122,4 @@ Useful for diagnosing:
 
 HiReS does not ship a CLI compare command. To compare predictions against
 manual annotations programmatically, use the `hires.models.eval` API — see
-[Evaluation](evaluation.md) for computing TP/FP/FN, precision, recall, and F1.
+[Evaluation](library/evaluation.md) for computing TP/FP/FN, precision, recall, and F1.

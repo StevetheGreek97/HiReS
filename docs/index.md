@@ -85,8 +85,13 @@ The documentation is organised into four parts.
 |------|-------------|
 | [Configuration](configuration.md) | All `Settings` parameters and defaults |
 | [Output Files](outputs.md) | Output files and CSV column descriptions |
-| [Data Models](models.md) | `Annotation`, `Collection`, and `Album` classes |
-| [Evaluation](evaluation.md) | Comparing predictions to ground truth |
+
+### Python Library
+
+| Page | Description |
+|------|-------------|
+| [Data Models](library/data-models.md) | `Annotation`, `Collection`, `Album`, and class remapping |
+| [Evaluation](library/evaluation.md) | Matching predictions to ground truth, metrics, and trait analysis |
 
 ---
 

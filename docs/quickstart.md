@@ -55,4 +55,4 @@ SegmentationPipeline(cfg).run()
 - Add `--save-crops` to export a masked crop image for every detection.
 - Pass `--dpi` and `--unit` (e.g. `--dpi 1200 --unit um`) to report descriptors in physical units.
 - Use `--debug` to save intermediate chunk-level annotations for troubleshooting.
-- To evaluate predictions against manual annotations, use the `hires.models.eval` API — see [Evaluation](evaluation.md).
+- To evaluate predictions against manual annotations, use the `hires.models.eval` API — see [Evaluation](library/evaluation.md).
