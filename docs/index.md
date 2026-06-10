@@ -56,18 +56,35 @@ See [Pipeline](pipeline.md) for the coordinate transformations, edge filter logi
 
 ---
 
-## Documentation
+The documentation is organised into four parts.
+
+### Getting Started
 
 | Page | Description |
 |------|-------------|
 | [Installation](installation.md) | Install from PyPI or source |
 | [Quickstart](quickstart.md) | Run your first segmentation in minutes |
-| [CLI Reference](cli.md) | All CLI commands and flags |
+
+### User Guide
+
+| Page | Description |
+|------|-------------|
+| [Command-Line Interface](cli.md) | All CLI commands and flags |
 | [Python API](api.md) | Using HiReS programmatically |
-| [Configuration](configuration.md) | All `Settings` parameters |
+
+### How It Works
+
+| Page | Description |
+|------|-------------|
 | [Pipeline](pipeline.md) | How the four pipeline stages work |
 | [Morphometric Descriptors](morphometrics.md) | Definitions and formulas for all computed traits |
-| [Outputs](outputs.md) | Output files and CSV column descriptions |
+
+### Reference
+
+| Page | Description |
+|------|-------------|
+| [Configuration](configuration.md) | All `Settings` parameters and defaults |
+| [Output Files](outputs.md) | Output files and CSV column descriptions |
 | [Data Models](models.md) | `Annotation`, `Collection`, and `Album` classes |
 | [Evaluation](evaluation.md) | Comparing predictions to ground truth |
 

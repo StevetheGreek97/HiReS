@@ -35,14 +35,14 @@ nav:
       - Installation: installation.md
       - Quickstart: quickstart.md
   - User Guide:
-      - CLI Reference: cli.md
+      - Command-Line Interface: cli.md
       - Python API: api.md
-      - Configuration: configuration.md
   - How It Works:
       - Pipeline: pipeline.md
       - Morphometric Descriptors: morphometrics.md
-      - Outputs: outputs.md
-  - Python Library:
+  - Reference:
+      - Configuration: configuration.md
+      - Output Files: outputs.md
       - Data Models: models.md
       - Evaluation: evaluation.md
 
