@@ -6,21 +6,24 @@ It targets high-resolution microscopy or biological datasets and combines **YOLO
 with **geometry-aware postprocessing** (Shapely).
 
 HiReS makes it easy to:
-- Split large `.tif`, `.tiff`, `.png`, `.jpg` images into overlapping chunks.
+- Split large `.tif`, `.tiff`, `.png`, `.jpg`, `.jpeg` images into overlapping chunks.
 - Run YOLO segmentation on each chunk.
 - Merge predictions into full-image coordinates.
 - Filter edge-touching polygons and apply IoU-based NMS.
 - Generate overlays, object crops, and shape-descriptor tables.
 
+Full documentation: <https://stevethegreek97.github.io/HiReS/>
+
 ---
 
 ## Key Features
-- Chunking with overlap for large images.
+- Chunking with overlap for arbitrarily large images (no GPU required).
 - YOLO segmentation per chunk.
-- Polygon filtering, unification, and NMS.
+- Polygon edge filtering, unification, and IoU-based NMS.
 - Overlay rendering for quick QA.
 - Per-object crops and shape descriptors (CSV).
-- CLI, Python API, and Streamlit UI (optional).
+- Optional physical-unit conversion (µm, mm, …) from scan DPI.
+- A `hires.models.eval` API for comparing predictions to ground truth.
 
 ---
 
@@ -33,20 +36,18 @@ cd HiReS
 pip install -e .
 ```
 
-Install from PyPI (package name is `HiReSeg`):
+Install from PyPI (distribution name is `HiReSeg`):
 ```bash
 pip install HiReSeg
 ```
 
-Import name is `HiReS`.
+The import name is `hires`.
 
 **Requirements:** Python ≥ 3.10
 
-**GPU inference:** Install PyTorch separately from the official PyTorch site.
+**GPU inference:** Install PyTorch separately from the official PyTorch site, then pass `--device cuda:0` (or `--device 0`).
 
-**Extra runtime deps used by the code:**
-- `opencv-python` (chunking and plotting)
-- `streamlit` (UI)
+**Optional dependency:** `plotnine` (and `SkillMetrics`, a core dependency) for the trait-analysis plots in `hires.analysis`.
 
 ---
 
@@ -65,29 +66,24 @@ hires <command> [options]
 | `hires chunk` | Split images into overlapping chunks |
 | `hires run` | Run the full segmentation pipeline (file or directory) |
 | `hires plot` | Render segmentation overlays |
-| `hires compare` | Visualize TP/FP/FN by comparing predictions to ground truth |
+
+Run `hires <command> --help` for the authoritative option list.
 
 ---
 
 ### `hires chunk`
-Split an image (or directory of images) into evenly sized chunks.
+Split an image (or directory of images) into overlapping chunks.
 
 ```bash
-hires chunk --source raw_image.tif --out chunks/ --chunk-size 1024 1024 --overlap 150
+hires chunk --source raw_image.tif --output chunks/ --chunk-size 1024 1024 --overlap 150
 ```
 
-**Arguments:**
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--source` | Path to a single image or directory | — |
-| `--out` | Output directory for chunks | — |
+| `-s`, `--source` | Path to a single image or directory | **required** |
+| `-o`, `--output` | Output directory for chunks | `chunks` |
 | `--chunk-size` | Chunk size in pixels: width height | `1024 1024` |
 | `--overlap` | Overlap in pixels between chunks | `150` |
-| `--recursive` | Recurse into subdirectories | `False` |
-
-Note: `hires chunk` currently ignores `--chunk-size` due to a CLI wiring bug and
-uses the default `Settings.chunk_size` (1024x1024). Use the Python API with
-`Settings(chunk_size=...)` to override.
 
 ---
 
@@ -95,34 +91,28 @@ uses the default `Settings.chunk_size` (1024x1024). Use the Python API with
 Run the complete segmentation pipeline on one image or a folder.
 
 ```bash
-hires run --source data/ --model models/DaphnAI.pt --out results/
+hires run --source data/ --model models/DaphnAI.pt --output results/
 ```
 
-**Pipeline steps:**
-1. Chunk input images
-2. Predict segmentations using YOLO
-3. Filter polygons touching image edges
-4. Merge chunks into full-image coordinates
-5. Apply IoU-based polygon NMS
-6. Save final annotations + overlay
-7. Save crops and shape descriptors
+**Pipeline steps:** chunk → predict → filter edges → unify → NMS → visualise → crops + CSV.
 
-**Arguments:**
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--source` | Image file or directory of images | — |
-| `--model` | Path to YOLO model (.pt) | — |
-| `--out` | Output directory | — |
+| `-s`, `--source` | Image file or directory of images | **required** |
+| `-m`, `--model` | Path to YOLO model (`.pt`) | `models/DaphnAI.pt` |
+| `-o`, `--output` | Output directory | `results` |
+| `-r`, `--recursive` | Recurse into subdirectories | `False` |
 | `--conf` | Model confidence threshold | `0.5` |
 | `--imgsz` | Inference image size | `1024` |
-| `--device` | Compute device: `cpu`, `cuda:0`, or `mps` | `cpu` |
+| `--device` | Compute device: `cpu`, `0`, `cuda:0`, … | `cpu` |
 | `--chunk-size` | Chunk size (width height) | `1024 1024` |
 | `--overlap` | Chunk overlap (pixels) | `150` |
-| `--edge-thr` | Border-touch filtering threshold | `1e-2` |
-| `--iou-thr` | IoU threshold for NMS | `0.7` |
-| `--recursive` | Recurse into subdirectories | `False` |
-| `--debug` | Save intermediate debug artifacts under `<out>/<image>_debug/` | `False` |
-| `--workers` | Parsed by CLI but not used; directory processing is sequential | `1` |
+| `--edge-threshold` | Border-touch filtering inset | `0.01` |
+| `--iou-thresh` | IoU threshold for NMS | `0.7` |
+| `--save-crops` | Save a masked crop per detection | `False` |
+| `--dpi` | Scan resolution in DPI — enables physical measurements | `None` |
+| `--unit` | Physical unit: `nm`, `um`, `mm`, `cm`, `m`, `inch` | `None` |
+| `--debug` | Save intermediate debug artifacts under `<output>/<image>_debug/` | `False` |
 
 ---
 
@@ -130,52 +120,29 @@ hires run --source data/ --model models/DaphnAI.pt --out results/
 Overlay YOLO-format segmentation polygons on the original image.
 
 ```bash
-hires plot --image raw_image.tif --ann results/raw_image.txt --out results/ --model models/DaphnAI.pt
+hires plot --source raw_image.tif --ann results/raw_image.txt --output results/ --model models/DaphnAI.pt
 ```
 
-**Arguments:**
-| Flag | Description |
-|------|-------------|
-| `--image` | Path to the input image |
-| `--ann` | YOLO-format annotation file |
-| `--out` | Output directory (writes `<image>_annotated.tif` inside) |
-| `--model` | Required: YOLO weights or a `data.yaml` file used for class names |
-
----
-
-### `hires compare`
-Compare a prediction file against a ground-truth file and render color-coded TP/FP/FN overlays.
-
-```bash
-hires compare --pred pred.txt --gt gt.txt --model models/DaphnAI.pt --img raw_image.tif --out results/
-```
-
-**Arguments:**
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--pred` | YOLO-format prediction annotations | — |
-| `--gt` | YOLO-format ground-truth annotations | — |
-| `--img`, `--image` | Path to the source image | — |
-| `--model` | YOLO weights or `data.yaml` used for class names | — |
-| `--out` | Output directory for overlays and summary | `results` |
-| `--iou-thr` | IoU threshold used to count a prediction as TP | `0.5` |
+| `-s`, `--source` | Path to the input image or directory | **required** |
+| `-m`, `--model` | YOLO weights or a `data.yaml` file (class names only) | `models/DaphnAI.pt` |
+| `-o`, `--output` | Output directory (writes `<image>_annotated.png` inside) | `results` |
+| `--ann` | Annotation `.txt` file or directory of `.txt` files | `""` |
+| `-r`, `--recursive` | Recurse into subdirectories | `False` |
 
-This command writes:
-- `<out>/<image>_compare_overlay.tif` → combined TP/FP/FN overlay
-- `<out>/<image>_compare_tp.tif` → matched predictions (TP) with matched GT outlines
-- `<out>/<image>_compare_fp.tif` → unmatched predictions (FP)
-- `<out>/<image>_compare_fn.tif` → unmatched GT polygons (FN)
-- `<out>/<image>_compare_summary.json` → counts and matched index pairs
+If `--ann` is omitted, `hires plot` looks for `<output>/<image_stem>.txt`.
 
 ---
 
 ## Outputs
 
-For each input image, HiReS writes:
-- `<out>/<image>.txt` → YOLO-style segmentation annotations (normalized polygon coords, optional confidence).
-- `<out>/<image>_annotated.tif` → segmentation overlay image.
-- `<out>/<image>_crops/` → per-object crops with mask.
-- `<out>/<image>_shapes.csv` → shape descriptors (area, perimeter, solidity, circularity, OBB width/height, etc.).
+For each input image, `hires run` writes:
+- `<output>/<image>.txt` → YOLO-style segmentation annotations (normalized polygon coords, optional confidence).
+- `<output>/<image>_annotated.tif` → segmentation overlay image.
+- `<output>/<image>_shapes.csv` → shape descriptors (area, perimeter, solidity, convexity, circularity, bbox and OBB width/length).
+- `<output>/run_config.yaml` → the settings used for the run.
+- `<output>/<image>_crops/` → per-object masked crops (only with `--save-crops`).
 
 ---
 
@@ -184,7 +151,8 @@ For each input image, HiReS writes:
 Basic segmentation pipeline:
 
 ```python
-from HiReS import Settings, SegmentationPipeline
+from hires.models import Settings
+from hires.pipeline.seg_pipeline import SegmentationPipeline
 
 cfg = Settings(
     source="data/images/",
@@ -197,6 +165,7 @@ cfg = Settings(
     overlap=300,
     edge_threshold=0.01,
     iou_thresh=0.7,
+    save_crops=True,
     recursive=False,
     debug=False,
 )
@@ -207,62 +176,47 @@ SegmentationPipeline(cfg).run()
 Chunking only:
 
 ```python
-from HiReS import Settings, ChunkingPipeline
+from hires.processing.chunker import ImageChunker
 
-cfg = Settings(
-    source="data/images/",
-    output_dir="chunks/",
+ImageChunker("data/images/").slice(
+    save_folder="chunks/",
     chunk_size=(1024, 1024),
     overlap=150,
-    recursive=True,
 )
-
-ChunkingPipeline(cfg).run()
 ```
 
 Plotting only:
 
 ```python
-from HiReS import Settings, PlottingPipeline
+from hires.models import Settings
+from hires.pipeline.chunk_pipeline import PlottingPipeline
 
 cfg = Settings(
     source="data/images/",
     model_path="models/DaphnAI.pt",
     output_dir="results/",
-    ann="results/example.txt",
+    ann="results/",
 )
 
 PlottingPipeline(cfg).run()
 ```
 
----
-
-## Streamlit UI (Optional)
-
-```bash
-pip install streamlit
-streamlit run HiReS/ui/Welcome.py
-```
-
-Note: the Streamlit pages currently import `Pipeline` from `HiReS/source/pipeline.py`,
-but that module only defines `SegmentationPipeline`, `ChunkingPipeline`, and
-`PlottingPipeline`. The UI may need a small update to run as-is.
+See the [documentation](https://stevethegreek97.github.io/HiReS/) for the data
+model (`Annotation`, `Collection`, `Album`) and evaluation APIs.
 
 ---
 
 ## Project Structure
 
 ```
-HiReS/
-├── source/
-│   ├── anno/              # Annotation parsing, filtering, NMS
-│   ├── ios/               # Chunking, plotting, writer, YOLO inference
-│   ├── utils/             # Logging + CLI helpers
-│   ├── config.py          # Settings dataclass
-│   ├── pipeline.py        # Segmentation, chunking, plotting pipelines
-│   └── cli.py             # Command-line interface
-├── ui/                    # Streamlit UI
-└── __init__.py            # Top-level exports
+hires/
+├── models/            # Annotation, Collection, Album, Settings, parser, eval/
+├── pipeline/          # BasePipeline, SegmentationPipeline, PlottingPipeline
+├── processing/        # ImageChunker, AnnotationChunker, YOLOSegPredictor
+├── operations/        # unify_collections (chunk → full-image transform)
+├── viz/               # SegmentationPlotter, performance plots
+├── analysis/          # GT-vs-prediction trait analysis (optional plotnine)
+└── cli.py             # Command-line interface
 ```
 
 ---
@@ -270,16 +224,20 @@ HiReS/
 ## Dependencies
 
 Core dependencies (from `pyproject.toml`):
-- **ultralytics** ≥ 8.0.0
-- **shapely** ≥ 2.0.0
-- **Pillow** ≥ 10.0.0
-- **numpy** ≥ 1.25.0
-- **matplotlib** ≥ 3.8.0
-- **tqdm** ≥ 4.66.0
-- **pandas** ≥ 2.2.2
+- **numpy** ≥ 2.1
+- **pandas** ≥ 2.2
+- **matplotlib** ≥ 3.9
+- **opencv-python** ≥ 4.10
+- **shapely** ≥ 2.1
+- **ultralytics** ≥ 8.3
+- **tqdm** ≥ 4.66
+- **pyyaml** ≥ 6.0
+- **scipy** ≥ 1.14
+- **SkillMetrics** ≥ 1.2
 
-Optional (for GPU):
-- **torch** (install via the official PyTorch site)
+Optional:
+- **torch** (GPU inference; install via the official PyTorch site)
+- **plotnine** (trait-analysis plots in `hires.analysis`)
 
 ---
 

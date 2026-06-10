@@ -139,7 +139,7 @@ for ann in col:
 
 ## Accessing descriptors
 
-All six descriptors are available as properties on `Annotation` objects and are exported automatically to the `_shapes.csv` output file:
+All descriptors are available as properties on `Annotation` objects and are exported automatically to the `_shapes.csv` output file:
 
 ```python
 ann = collection[0]

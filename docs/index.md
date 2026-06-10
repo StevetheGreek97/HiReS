@@ -50,7 +50,7 @@ See [Pipeline](pipeline.md) for the coordinate transformations, edge filter logi
 - Class-agnostic: works with any YOLO segmentation model
 - Geometry-based edge filtering removes boundary artefacts
 - Polygon-level NMS with spatial indexing (STRtree) for scalable deduplication
-- Six morphometric descriptors per object with optional physical unit conversion (µm, mm, …)
+- A suite of morphometric descriptors per object (area, perimeter, circularity, convexity, solidity, bounding-box and OBB dimensions) with optional physical unit conversion (µm, mm, …)
 - Three CLI commands: `hires run`, `hires chunk`, `hires plot`
 - Full Python API for programmatic access and downstream analysis
 

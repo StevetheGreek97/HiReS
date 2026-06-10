@@ -27,6 +27,8 @@ A single segmented polygon with its class, confidence score, and derived geometr
 | `confidence` | `float \| None` | Detection confidence score |
 | `dpi` | `float \| None` | Image DPI (set via `set_scale`) |
 | `unit` | `str \| None` | Physical unit (set via `set_scale`) |
+| `image_width` | `int \| None` | Source image width in px (set via `set_scale`); needed to denormalise coordinates for pixel/physical measurements |
+| `image_height` | `int \| None` | Source image height in px (set via `set_scale`) |
 
 ### Properties
 
@@ -157,6 +159,8 @@ An ordered container of `Annotation` objects for a single image.
 | `image_path` | `Path \| str \| None` | Path to the source image |
 | `dpi` | `float \| None` | DPI applied to all annotations |
 | `unit` | `str \| None` | Unit applied to all annotations |
+| `image_width` | `int \| None` | Source image width in px (read from `image_path` or set via `set_scale`) |
+| `image_height` | `int \| None` | Source image height in px |
 
 ### Properties
 
@@ -201,9 +205,13 @@ col.extend([ann_a, ann_b])
 
 #### `set_scale(dpi, unit)`
 
-Apply physical scale to all annotations at once.
+Apply physical scale to all annotations at once. The collection must know the
+source image dimensions — load it with `image_path` set (or set `image_width` /
+`image_height` directly), otherwise the call warns and leaves measurements
+unscaled.
 
 ```python
+col = Collection.read_txt("results/image.txt", image_path="data/image.tif")
 col.set_scale(dpi=300.0, unit="um")
 ```
 
@@ -233,9 +241,12 @@ clean = col.nms(iou_threshold=0.5)
 clean = col.nms(iou_threshold=0.5, class_aware=True)  # suppress within same class only
 ```
 
-#### `remap_classes(mapping)`
+#### `remap_classes(mapping, resolve=None)`
 
-Return a new `Collection` with class ids remapped.
+Return a new `Collection` with class ids remapped. `mapping` is either a plain
+`{old_id: new_id}` dict or a `ClassMapping`; `resolve` chooses a target for any
+ambiguous (split) class. See [Class remapping](#class-remapping) for the full
+workflow.
 
 ```python
 remapped = col.remap_classes({0: 1, 2: 1})  # merge old classes 0 and 2 → new class 1
@@ -447,9 +458,11 @@ Write each collection back to a `.txt` file under `out_dir`.
 album.to_txt("remapped_annotations/")
 ```
 
-#### `remap_classes(mapping)`
+#### `remap_classes(mapping, resolve=None)`
 
-Return a new `Album` with class ids remapped across all collections.
+Return a new `Album` with class ids remapped across all collections. Accepts a
+plain `{old_id: new_id}` dict or a `ClassMapping` (with an optional `resolve` for
+ambiguous classes). See [Class remapping](#class-remapping).
 
 ```python
 remapped = album.remap_classes({0: 0, 1: 0, 2: 1})
@@ -503,3 +516,165 @@ album.save_crops("all_crops/", use_mask=True, padding=5)
 remapped = album.remap_classes({0: 0, 1: 0})  # merge class 1 into 0
 remapped.to_txt("merged_annotations/")
 ```
+
+---
+
+## Class remapping
+
+`hires.models.build_class_mapping` · `hires.models.ClassMapping`
+
+`Collection.remap_classes` and `Album.remap_classes` rewrite the integer
+`class_id` of every annotation. There are two ways to describe the remap:
+
+1. **A plain `{old_id: new_id}` dict** — direct integer→integer renames. Any
+   `class_id` not present in the dict is left unchanged.
+2. **A `ClassMapping`** built with `build_class_mapping()` — a reusable,
+   *label-aware* schema translation between two class-name dictionaries. This is
+   the robust option when the source and target models use different class names
+   and/or a different number of classes.
+
+### `build_class_mapping(old_names, new_names, name_map)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `old_names` | `dict[int, str]` | `{id: label}` of the **source** schema (the IDs currently in your annotations) |
+| `new_names` | `dict[int, str]` | `{id: label}` of the **target** schema (the IDs you want to end up with) |
+| `name_map` | `dict[str, str \| list[str]]` | `{old_label: new_label}` for a direct rename, or `{old_label: [candidate_new_labels]}` when one old class can map to several new ones |
+
+Returns a `ClassMapping`. It resolves each old label to a new **id** by looking
+the chosen label up in `new_names`, so the two schemas can have completely
+different ID orderings.
+
+A list value marks an **ambiguous** entry: a single old class that could become
+one of several new classes. You decide which one later, per-collection or
+per-album, via the `resolve` argument of `remap_classes`.
+
+### `ClassMapping`
+
+| Attribute / Method | Description |
+|--------------------|-------------|
+| `mapping` | `{old_id: new_id}` for direct renames, `{old_id: [candidate_new_ids]}` for ambiguous ones |
+| `old_names` / `new_names` | The two schemas it was built from |
+| `flatten(resolve)` | Resolve all ambiguous entries to a flat `{old_id: new_id}` dict. `resolve` is `{old_label: chosen_new_label}` |
+
+`ClassMapping` has a readable `repr`, which is handy for inspecting a mapping
+before applying it.
+
+### Example 1 — merge + resolve an ambiguous class
+
+A generic detector with two classes (`ballooned`, `Daphnia`) is translated into
+a finer-grained species schema. `ballooned` maps 1:1, but `Daphnia` is ambiguous
+— it could be any of three species — so it is declared as a list and resolved
+when the mapping is applied.
+
+```python
+from hires.models import build_class_mapping, Collection
+
+class_names_old = {0: "ballooned", 1: "Daphnia"}
+class_names_new = {0: "d_pulex", 1: "d_galeata", 2: "S_vetulus", 3: "ballooned"}
+
+SCHEMA = {
+    "ballooned": "ballooned",                          # 1:1 rename
+    "Daphnia":   ["S_vetulus", "d_pulex", "d_galeata"],  # ambiguous → resolve later
+}
+
+full_mapping = build_class_mapping(class_names_old, class_names_new, SCHEMA)
+
+print(full_mapping)
+# ClassMapping(
+#   0 ('ballooned') → 3 ('ballooned')
+#   1 ('Daphnia')   → [2 ('S_vetulus'), 0 ('d_pulex'), 1 ('d_galeata')]
+# )
+
+# Apply to a collection that we know is the S. vetulus sample:
+s_vet = Collection.read_txt("samples/s_vet.txt")
+s_vet_remapped = s_vet.remap_classes(full_mapping, resolve={"Daphnia": "S_vetulus"})
+# class_id 0 (ballooned) → 3,  class_id 1 (Daphnia) → 2 (S_vetulus)
+```
+
+Omitting `resolve` for an ambiguous entry raises a `KeyError` that lists the
+candidate labels, so you can never silently mis-assign a split class.
+
+### Example 2 — per-sample relabelling across an Album
+
+When you know the species of each sample up front, you can collapse several
+fine-grained labels into the correct one per sample using a same-schema map
+(`build_class_mapping(names, names, schema)`). Because every entry is a 1:1
+string rename, no `resolve` is needed.
+
+```python
+from pathlib import Path
+from hires.models import build_class_mapping, Album
+
+# One shared label↔id schema for both sides of the remap.
+names = {
+    0: "Dg_f_lateral_adult",
+    1: "Dp_f_lateral_adult",
+    2: "Sv_f_lateral_adult",
+    3: "Daphnia_f_lateral_juvenile",
+    4: "Sv_f_lateral_juvenile",
+    5: "chydoride",
+    6: "copepod",
+    7: "unidentified_Daphniidae",
+}
+
+# Each sample's adults/juveniles are forced to the correct species.
+S_VET_SCHEMA = {
+    "Dg_f_lateral_adult":         "Sv_f_lateral_adult",
+    "Dp_f_lateral_adult":         "Sv_f_lateral_adult",
+    "Sv_f_lateral_adult":         "Sv_f_lateral_adult",
+    "Daphnia_f_lateral_juvenile": "Sv_f_lateral_juvenile",
+    "Sv_f_lateral_juvenile":      "Sv_f_lateral_juvenile",
+    "chydoride":                  "chydoride",
+    "copepod":                    "copepod",
+    "unidentified_Daphniidae":    "unidentified_Daphniidae",
+}
+D_GAL_SCHEMA = {
+    "Dg_f_lateral_adult":         "Dg_f_lateral_adult",
+    "Dp_f_lateral_adult":         "Dg_f_lateral_adult",
+    "Sv_f_lateral_adult":         "Dg_f_lateral_adult",
+    "Daphnia_f_lateral_juvenile": "Daphnia_f_lateral_juvenile",
+    "Sv_f_lateral_juvenile":      "Daphnia_f_lateral_juvenile",
+    "chydoride":                  "chydoride",
+    "copepod":                    "copepod",
+    "unidentified_Daphniidae":    "unidentified_Daphniidae",
+}
+D_PUL_SCHEMA = {
+    "Dg_f_lateral_adult":         "Dp_f_lateral_adult",
+    "Dp_f_lateral_adult":         "Dp_f_lateral_adult",
+    "Sv_f_lateral_adult":         "Dp_f_lateral_adult",
+    "Daphnia_f_lateral_juvenile": "Daphnia_f_lateral_juvenile",
+    "Sv_f_lateral_juvenile":      "Daphnia_f_lateral_juvenile",
+    "chydoride":                  "chydoride",
+    "copepod":                    "copepod",
+    "unidentified_Daphniidae":    "unidentified_Daphniidae",
+}
+
+base_path = Path("data")
+
+# s_vet, d_gal, d_pul are lists of .txt paths for each species' samples.
+for schema, species_paths, name in zip(
+    [S_VET_SCHEMA, D_GAL_SCHEMA, D_PUL_SCHEMA],
+    [s_vet, d_gal, d_pul],
+    ["s_vet", "d_gal", "d_pul"],
+):
+    full_mapping = build_class_mapping(names, names, schema)
+
+    sp_album = Album.from_paths(species_paths, album_name=name)
+    print(sp_album.class_counts())            # before remap
+
+    sp_album_remapped = sp_album.remap_classes(full_mapping)
+    print(sp_album_remapped.class_counts())   # after remap
+
+    sp_album_remapped.to_txt(out_dir=base_path / "comadapt_model_E06_remaped")
+```
+
+`Album.remap_classes` returns a **new** `Album` (the original is untouched) and
+applies the same mapping to every collection. `to_txt` then writes one
+`<collection_name>.txt` per sample under `out_dir`.
+
+!!! tip "When to use a plain dict vs. `build_class_mapping`"
+    Reach for a plain `{old_id: new_id}` dict for quick, in-schema merges
+    (`album.remap_classes({0: 0, 1: 0})`). Use `build_class_mapping` when you are
+    translating between two named schemas — it validates every label against
+    `new_names` and turns split classes into explicit, resolvable choices.

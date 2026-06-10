@@ -16,7 +16,7 @@ The diagram below shows which pipeline stages each CLI command executes.
 |---------|--------|-------|--------|
 | `hires run` | 1 → 2 → 3 → 4 | Image or directory + model weights | CSV traits, `.txt` annotations, overlays |
 | `hires chunk` | 1 only | Image or directory | Tile PNGs |
-| `hires plot` | 4 only | Image + pre-existing `.txt` + model weights | Overlay image |
+| `hires plot` | render only | Image + pre-existing `.txt` + model weights | Overlay image |
 
 ---
 
@@ -26,7 +26,7 @@ The full-resolution image is partitioned into a regular grid of overlapping tile
 
 **Default parameters:** 1024 × 1024 px tiles with 150 px overlap.
 
-The stride of the sliding window equals `chunk_size + overlap`, so adjacent tiles share an overlapping border region. This overlap is essential: organisms located near tile boundaries remain fully visible in at least one tile and are never represented solely as truncated detections.
+The stride of the sliding window equals `chunk_size − overlap`, so adjacent tiles share an overlapping border region of `overlap` pixels. This overlap is essential: organisms located near tile boundaries remain fully visible in at least one tile and are never represented solely as truncated detections.
 
 If a tile extends beyond the image boundary, the out-of-bounds area is filled with zero-intensity (black) pixels to maintain a fixed tile size for consistent model input.
 
@@ -116,21 +116,23 @@ See [Outputs](outputs.md) for the full list of output files.
 
 ---
 
-## Pipeline variants
+## Pipeline classes
 
-HiReS exposes three pipeline classes, all inheriting from `BasePipeline`:
+HiReS exposes two pipeline classes that inherit from `BasePipeline`:
 
 | Class | Stage(s) | Use |
 |-------|---------|-----|
 | `SegmentationPipeline` | 1 → 2 → 3 → 4 | Full end-to-end workflow |
-| `ChunkingPipeline` | 1 only | Generate tiles for annotation or inspection |
-| `PlottingPipeline` | 4 only | Render existing annotations without re-running inference |
+| `PlottingPipeline` | render only | Render existing annotations without re-running inference |
+
+Stage 1 on its own (the `hires chunk` command) is handled directly by
+`ImageChunker` rather than a dedicated pipeline class.
 
 ---
 
 ## Debug mode
 
-When `debug=True`, the pipeline saves per-tile annotation files to `<out>/<image>_debug/` before edge filtering. This is useful for diagnosing missed detections or NMS behaviour at the tile level.
+When `debug=True`, the pipeline saves intermediate artifacts to `<out>/<image>_debug/`: the raw tile images, per-tile prediction overlays, per-tile annotations before and after edge filtering, and the merged full-image annotations before NMS. This is useful for diagnosing missed detections or NMS behaviour at the tile level. See [Outputs — Debug artifacts](outputs.md#debug-artifacts).
 
 ---
 
@@ -140,7 +142,7 @@ When `debug=True`, the pipeline saves per-tile annotation files to `<out>/<image
 |--------|-----------------|------|
 | `hires/pipeline/base.py` | `BasePipeline` | Image iteration, mode detection, logging |
 | `hires/pipeline/seg_pipeline.py` | `SegmentationPipeline` | Orchestrates all four stages |
-| `hires/pipeline/chunk_pipeline.py` | `ChunkingPipeline`, `PlottingPipeline` | Standalone tile and plot pipelines |
+| `hires/pipeline/chunk_pipeline.py` | `PlottingPipeline` | Annotation overlay pipeline |
 | `hires/processing/chunker.py` | `ImageChunker` | Overlapping tile splitting |
 | `hires/processing/predictor.py` | `YOLOSegPredictor` | YOLO inference wrapper |
 | `hires/operations/ops.py` | `unify_collections()` | Coordinate transform from tile to full image |

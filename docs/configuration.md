@@ -3,7 +3,7 @@
 All pipeline behaviour is controlled through the `Settings` dataclass.
 
 ```python
-from hires import Settings
+from hires.models import Settings
 ```
 
 ---
@@ -14,10 +14,10 @@ from hires import Settings
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `source` | `str \| Path` | — | Path to an image file or directory of images |
-| `model_path` | `str \| Path \| None` | `None` | Path to YOLO `.pt` weights file |
-| `output_dir` | `str \| Path` | — | Directory where all outputs are written |
-| `ann` | `str \| Path \| None` | `None` | Annotation file for `PlottingPipeline` |
+| `source` | `str \| Path` | `"data"` | Path to an image file or directory of images |
+| `model_path` | `str` | `"models/DaphnAI.pt"` | Path to YOLO `.pt` weights file |
+| `output_dir` | `str` | `"results"` | Directory where all outputs are written |
+| `ann` | `str` | `""` | Annotation file (or directory) for `PlottingPipeline` |
 | `recursive` | `bool` | `False` | Recurse into subdirectories when `source` is a directory |
 
 ### Inference
@@ -39,16 +39,16 @@ from hires import Settings
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `edge_threshold` | `float` | `0.01` | Fraction of perimeter allowed to touch a tile edge before a polygon is discarded |
+| `edge_threshold` | `float` | `0.01` | Inward inset of the normalised unit box; a polygon is kept only if it lies fully inside `box(0,0,1,1).buffer(-edge_threshold)`, discarding edge-touching detections |
 | `iou_thresh` | `float` | `0.7` | IoU threshold for non-maximum suppression |
 
 ### Outputs
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `save_crops` | `bool` | `True` | Save per-object crops to `<out>/<image>_crops/` |
+| `save_crops` | `bool` | `False` | Save per-object crops to `<out>/<image>_crops/` |
 | `dpi` | `float \| None` | `None` | Image DPI for converting pixel measurements to physical units |
-| `unit` | `str` | `"px"` | Physical unit for shape descriptors: `"px"`, `"nm"`, `"um"`, `"mm"`, `"cm"`, `"m"`, `"inch"` |
+| `unit` | `str \| None` | `None` | Physical unit for shape descriptors: `"nm"`, `"um"`, `"mm"`, `"cm"`, `"m"`, `"inch"`. When `None`, measurements stay in pixels |
 
 ### Debug
 
@@ -56,12 +56,23 @@ from hires import Settings
 |-----------|------|---------|-------------|
 | `debug` | `bool` | `False` | Save intermediate per-chunk annotations under `<out>/<image>_debug/` |
 
+### Evaluation
+
+These fields exist on `Settings` for evaluation workflows but are not used by the
+`hires run` / `hires chunk` / `hires plot` commands.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `match_iou` | `float` | `0.5` | IoU threshold for matching predictions to ground truth |
+| `pred_ann` | `str` | `""` | Path to a prediction annotation file for comparison |
+| `gt_ann` | `str` | `""` | Path to a ground-truth annotation file for comparison |
+
 ---
 
 ## Example
 
 ```python
-from hires import Settings
+from hires.models import Settings
 
 cfg = Settings(
     source="data/sample.tif",

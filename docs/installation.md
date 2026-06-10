@@ -11,7 +11,7 @@
 pip install HiReSeg
 ```
 
-The import name is `hires` (or `HiReS` — both work).
+The distribution name is `HiReSeg`; the import name is `hires`.
 
 ## Install from source
 
@@ -32,13 +32,16 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 ## Optional dependencies
 
+Core dependencies (including `opencv-python`) are installed automatically. The
+trait-analysis functions in `hires.analysis` additionally need `plotnine`:
+
 | Package | Use |
 |---------|-----|
-| `opencv-python` | Chunking and overlay rendering |
-| `streamlit` | Web UI |
+| `plotnine` | Trait-comparison plots (`distributions`, `bias`, `bland_altman`, …) |
+| `torch` | GPU inference (`--device cuda:0`) — install via the PyTorch site |
 
 ```bash
-pip install opencv-python streamlit
+pip install plotnine
 ```
 
 ## Verify installation

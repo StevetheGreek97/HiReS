@@ -26,11 +26,22 @@ The source image with all detected polygon outlines drawn on top, coloured by cl
 
 ---
 
+## Run configuration
+
+**Path:** `<out>/run_config.yaml`
+
+A record of every `Settings` value used for the run, plus a timestamp and the
+number of images processed. Useful for reproducibility.
+
+---
+
 ## Per-object crops
 
-**Path:** `<out>/<image>_crops/<index>_class<id>.tif`
+**Path:** `<out>/<image>_crops/<image>_<index>_class_<id>.png`
 
-A tight bounding-box crop around each detected object. Written when `save_crops=True` in `Settings` (default `False`).
+A masked crop around each detected object (`index` is zero-padded, e.g. `0000`).
+Written only when `save_crops=True` in `Settings` / the `--save-crops` CLI flag
+is passed (default `False`).
 
 ---
 
@@ -42,17 +53,27 @@ One row per detected object. This is the primary output for downstream statistic
 
 | Column | Unit | Description |
 |--------|------|-------------|
-| `index` | — | Object index (matches crop filename) |
+| `collection_name` | — | Collection name (image stem) |
+| `image_path` | — | Path to the source image |
+| `image_width` | px | Source image width |
+| `image_height` | px | Source image height |
+| `dpi` | — | DPI used for scaling (blank if unset) |
+| `unit` | — | Physical unit used for scaling (blank if unset) |
 | `class_id` | — | Class integer assigned by the model |
 | `confidence` | — | Detection confidence score (0–1) |
 | `area` | px² | Polygon area (Shoelace formula) |
 | `perimeter` | px | Polygon perimeter (sum of edge lengths) |
-| `circularity` | — | 4π·area / perimeter² (1.0 = perfect circle) |
-| `convexity` | — | Convex hull perimeter / polygon perimeter |
 | `solidity` | — | Polygon area / convex hull area |
+| `convexity` | — | Convex hull perimeter / polygon perimeter |
+| `circularity` | — | 4π·area / perimeter² (1.0 = perfect circle) |
+| `bbox_width` | px | Axis-aligned bounding box width |
+| `bbox_height` | px | Axis-aligned bounding box height |
 | `obb_width` | px | Oriented bounding box short axis (body width) |
-| `obb_height` | px | Oriented bounding box long axis (body length) |
-| `obb_angle` | deg | OBB rotation angle |
+| `obb_length` | px | Oriented bounding box long axis (body length) |
+
+When `dpi`/`unit` are set, the length columns (`perimeter`, `bbox_*`, `obb_*`)
+are reported in the chosen unit and `area` in unit². The `solidity`,
+`convexity`, and `circularity` ratios are always dimensionless.
 
 !!! info "Physical units"
     All measurements are in **pixel units** by default. To convert to physical units (µm, mm, …), set `dpi` and `unit` in `Settings` or call `collection.set_scale(dpi=..., unit=...)` after loading. See [Morphometric Descriptors — Physical unit conversion](morphometrics.md#physical-unit-conversion) for the conversion factors.
@@ -62,7 +83,7 @@ One row per detected object. This is the primary output for downstream statistic
 ```python
 import pandas as pd
 df = pd.read_csv("results/image_shapes.csv")
-print(df[["class_id", "area", "obb_height", "circularity"]].describe())
+print(df[["class_id", "area", "obb_length", "circularity"]].describe())
 ```
 
 Or load directly through HiReS:
@@ -81,7 +102,15 @@ df.to_csv("summary.csv", index=False)
 
 **Path:** `<out>/<image>_debug/`
 
-Written only when `debug=True` in `Settings`. Contains per-tile annotation `.txt` files **before** edge filtering and coordinate unification. Useful for diagnosing:
+Written only when `debug=True` in `Settings`. The debug directory mirrors the
+internal stages for the image and contains:
+
+- `chunks/` — the raw tile images
+- `pred/` — per-tile prediction overlays
+- `filtered/` and `filtered_txt/` — per-tile annotations after edge filtering
+- `<image>_unified.txt` / `<image>_unified.png` — merged full-image annotations before NMS
+
+Useful for diagnosing:
 
 - Missed detections at tile boundaries
 - Edge filter aggressiveness (`edge_threshold`)
@@ -89,16 +118,8 @@ Written only when `debug=True` in `Settings`. Contains per-tile annotation `.txt
 
 ---
 
-## Compare outputs (`hires compare`)
+## Evaluating against ground truth
 
-Running `hires compare` generates colour-coded overlay images and a summary JSON for evaluating predictions against a ground-truth annotation file.
-
-| File | Contents |
-|------|----------|
-| `<image>_compare_overlay.tif` | All predictions and GT polygons colour-coded by TP / FP / FN |
-| `<image>_compare_tp.tif` | True positives: matched predictions with GT outlines |
-| `<image>_compare_fp.tif` | False positives: unmatched predictions |
-| `<image>_compare_fn.tif` | False negatives: unmatched ground-truth polygons |
-| `<image>_compare_summary.json` | `{"tp": N, "fp": N, "fn": N, "matches": [[pred_i, gt_j], ...]}` |
-
-See [Evaluation](evaluation.md) for computing precision, recall, and F1 from these outputs programmatically.
+HiReS does not ship a CLI compare command. To compare predictions against
+manual annotations programmatically, use the `hires.models.eval` API — see
+[Evaluation](evaluation.md) for computing TP/FP/FN, precision, recall, and F1.
