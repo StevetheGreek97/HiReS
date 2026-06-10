@@ -547,7 +547,8 @@ different ID orderings.
 
 A list value marks an **ambiguous** entry: a single old class that could become
 one of several new classes. You decide which one later, per-collection or
-per-album, via the `resolve` argument of `remap_classes`.
+per-album, via the `resolve` argument of `remap_classes`. The chosen label must
+be one of the declared candidates — picking anything else raises a `ValueError`.
 
 ### `ClassMapping`
 
@@ -583,14 +584,24 @@ full_mapping = build_class_mapping(class_names_old, class_names_new, SCHEMA)
 print(full_mapping)
 # ClassMapping(
 #   0 ('ballooned') → 3 ('ballooned')
-#   1 ('Daphnia')   → [2 ('S_vetulus'), 0 ('d_pulex'), 1 ('d_galeata')]
+#   1 ('Daphnia') → [2 ('S_vetulus'), 0 ('d_pulex'), 1 ('d_galeata')]
 # )
 
-# Apply to a collection that we know is the S. vetulus sample:
-s_vet = Collection.read_txt("samples/s_vet.txt")
-s_vet_remapped = s_vet.remap_classes(full_mapping, resolve={"Daphnia": "S_vetulus"})
-# class_id 0 (ballooned) → 3,  class_id 1 (Daphnia) → 2 (S_vetulus)
+# The SAME mapping is reused across collections, resolving the ambiguous
+# 'Daphnia' class to a different species for each sample you know the identity of:
+s_vet     = Collection.read_txt("samples/s_vet.txt")
+d_pulex   = Collection.read_txt("samples/d_pulex.txt")
+d_galeata = Collection.read_txt("samples/d_galeata.txt")
+
+s_vet_remapped     = s_vet.remap_classes(full_mapping,     resolve={"Daphnia": "S_vetulus"})
+d_pulex_remapped   = d_pulex.remap_classes(full_mapping,   resolve={"Daphnia": "d_pulex"})
+d_galeata_remapped = d_galeata.remap_classes(full_mapping, resolve={"Daphnia": "d_galeata"})
+# In every case  class_id 0 (ballooned) → 3;
+# class_id 1 (Daphnia) → 2 (S_vetulus) / 0 (d_pulex) / 1 (d_galeata) respectively.
 ```
+
+Build the ambiguous mapping once, then resolve it per collection (or per album)
+— there is no need to rebuild it for each species.
 
 Omitting `resolve` for an ambiguous entry raises a `KeyError` that lists the
 candidate labels, so you can never silently mis-assign a split class.
