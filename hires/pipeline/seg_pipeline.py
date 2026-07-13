@@ -100,6 +100,7 @@ class SegmentationPipeline(BasePipeline):
         debug_dir = None
         debug_chunks_dir = None
         debug_pred_dir = None
+        debug_pred_txt_dir = None
         debug_filtered_dir = None
         debug_filtered_txt_dir = None
         debug_plotter = None
@@ -107,12 +108,14 @@ class SegmentationPipeline(BasePipeline):
             debug_dir = Path(self.cfg.output_dir) / f"{image_stem}_debug"
             debug_chunks_dir = debug_dir / "chunks"
             debug_pred_dir = debug_dir / "pred"
+            debug_pred_txt_dir = debug_dir / "pred_txt"
             debug_filtered_dir = debug_dir / "filtered"
             debug_filtered_txt_dir = debug_dir / "filtered_txt"
             for path in (
                 debug_dir,
                 debug_chunks_dir,
                 debug_pred_dir,
+                debug_pred_txt_dir,
                 debug_filtered_dir,
                 debug_filtered_txt_dir,
             ):
@@ -171,6 +174,8 @@ class SegmentationPipeline(BasePipeline):
                         str(txt),
                         save=str(debug_pred_dir / f"{txt.stem}_pred.png"),
                     )
+                    if debug_pred_txt_dir is not None:
+                        shutil.copy2(txt, debug_pred_txt_dir / txt.name)
 
             edge_thr = self.cfg.edge_threshold
 
