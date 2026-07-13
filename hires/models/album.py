@@ -71,7 +71,10 @@ class Album:
         }
 
     def _validate_unique_names(self) -> None:
-        seen: set[str] = set()
+        import warnings
+        from collections import Counter
+        seen: Counter = Counter()
+        renamed: list[tuple[str, str]] = []
 
         for collection in self.collections:
             name = collection.collection_name
@@ -81,10 +84,19 @@ class Album:
                     "All collections in an Album must have a non-empty collection_name."
                 )
 
-            if name in seen:
-                raise ValueError(f"Duplicate collection_name '{name}' in Album.")
+            if seen[name] > 0:
+                new_name = f"{name}__{seen[name]}"
+                collection.collection_name = new_name
+                renamed.append((name, new_name))
 
-            seen.add(name)
+            seen[name] += 1
+
+        if renamed:
+            warnings.warn(
+                f"{len(renamed)} duplicate collection(s) renamed with suffix __N "
+                f"(e.g. {renamed[0][0]!r} → {renamed[0][1]!r})",
+                stacklevel=3,
+            )
 
     def add(self, collection: Collection) -> None:
         name = collection.collection_name
@@ -95,7 +107,8 @@ class Album:
             )
 
         if name in self:
-            raise ValueError(f"Duplicate collection_name '{name}' in Album.")
+            import warnings
+            warnings.warn(f"Duplicate collection_name '{name}' added to Album.", stacklevel=2)
 
         self.collections.append(collection)
 
@@ -329,6 +342,29 @@ class Album:
         for col in self.collections:
             total.update(col.class_counts)
         return total
+
+    def remove_classes(self, class_ids: "int | set[int]") -> "Album":
+        """Return a new Album with all annotations of the given class(es) removed."""
+        from .collection import Collection
+
+        drop = {class_ids} if isinstance(class_ids, int) else set(class_ids)
+
+        cleaned = []
+        for col in self.collections:
+            filtered = col.filter(predicate=lambda ann, d=drop: ann.class_id not in d)
+            cleaned.append(
+                Collection(
+                    annotations=filtered.annotations,
+                    collection_name=col.collection_name,
+                    image_path=col.image_path,
+                    dpi=col.dpi,
+                    unit=col.unit,
+                    image_width=col.image_width,
+                    image_height=col.image_height,
+                )
+            )
+
+        return Album(collections=cleaned, album_name=self.album_name)
 
     def balance_majority(
         self,
