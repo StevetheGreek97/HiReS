@@ -668,7 +668,7 @@ def match(
     strict : bool, default False
         For albums: raise if a collection exists in only one album. By
         default such collections are skipped and listed in
-        :attr:`MatchResult.unpaired_gt` / :attr:`MatchResult.unpaired_pred`.
+        ``MatchResult.unpaired_gt`` / ``MatchResult.unpaired_pred``.
 
     Returns
     -------

@@ -2352,7 +2352,7 @@ def target_diagram(
     return metrics_df, figure
 
 def target_plot(*args, **kwargs):
-    """Alias for :func:`target_diagram`."""
+    """Alias for ``target_diagram``."""
     return target_diagram(*args, **kwargs)
 
 def per_sample_abundance(
