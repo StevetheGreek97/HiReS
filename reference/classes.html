@@ -1,0 +1,2532 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Tiled instance segmentation and morphometric analysis of high-resolution images">
+      
+      
+        <meta name="author" content="Stylianos Mavrianos">
+      
+      
+        <link rel="canonical" href="https://stevethegreek97.github.io/HiReS/reference/classes.html">
+      
+      
+        <link rel="prev" href="measurement.html">
+      
+      
+        <link rel="next" href="metrics.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Class handling - HiReS</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#class-handling" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="HiReS" class="md-header__button md-logo" aria-label="HiReS" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            HiReS
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Class handling
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/StevetheGreek97/HiReS" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    StevetheGreek97/HiReS
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../index.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/index.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="index.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/contributing.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="HiReS" class="md-nav__button md-logo" aria-label="HiReS" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    HiReS
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/StevetheGreek97/HiReS" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    StevetheGreek97/HiReS
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/migration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../user-guide/index.html" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/data-model.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The data model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/io.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reading and writing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/segmentation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tiled segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/morphometrics.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Morphometric traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/filtering.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering and class handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/evaluation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/plotting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/tiling.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tiling training data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/diagnostics.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors, warnings and logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="index.html" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Python API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="annotation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    hires.Annotation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="collection.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    hires.Collection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="album.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    hires.Album
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="io.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input and output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="segmentation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="measurement.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measurement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class handling
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="classes.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hires.build_class_mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;build_class_mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hires.ClassMapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ClassMapping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ClassMapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hires.ClassMapping.flatten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;flatten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="metrics.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation (hires.metrics)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="plot.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotting (hires.plot)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="tiling.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tiling (hires.tiling)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="analysis.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait agreement (hires.analysis)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="errors.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions and warnings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Command line
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="cli.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The hires command
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="outputs.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/contributing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/release-notes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hires.build_class_mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;build_class_mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hires.ClassMapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ClassMapping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ClassMapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hires.ClassMapping.flatten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;flatten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="class-handling">Class handling<a class="headerlink" href="#class-handling" title="Permanent link">&para;</a></h1>
+<p>Translating class ids between two labelling schemas. See
+<a href="../user-guide/filtering.html#translating-class-ids">Filtering and class handling</a>
+for a worked example.</p>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hires.build_class_mapping" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">hires.build_class_mapping</span>
+
+
+<a href="#hires.build_class_mapping" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build_class_mapping</span><span class="p">(</span><span class="n">old_names</span><span class="p">,</span> <span class="n">new_names</span><span class="p">,</span> <span class="n">name_map</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Build a <a class="autorefs autorefs-internal" title="            hires.ClassMapping
+
+
+  
+      dataclass
+  " href="#hires.ClassMapping"><code>ClassMapping</code></a> between two class-name schemas.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>old_names</code>
+            </td>
+            <td>
+                  <code>mapping of int to str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{old_id: old_label}</code> of the schema the annotations currently use.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>new_names</code>
+            </td>
+            <td>
+                  <code>mapping of int to str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{new_id: new_label}</code> of the target schema.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name_map</code>
+            </td>
+            <td>
+                  <code>mapping of str to (str or sequence of str)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{old_label: new_label}</code> for a direct rename, or
+<code>{old_label: [candidate_new_labels]}</code> for a class that is split in
+the new schema. Ambiguous entries are resolved per call to
+<code>remap_classes</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hires.ClassMapping
+
+
+  
+      dataclass
+   (hires.classes.ClassMapping)" href="#hires.ClassMapping">ClassMapping</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError">KeyError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If an old label has no entry in <code>name_map</code> or a target label does
+not exist in <code>new_names</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">mapping</span> <span class="o">=</span> <span class="n">build_class_mapping</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="n">old_names</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">"ballooned"</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">"Daphnia"</span><span class="p">},</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">new_names</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">"d_pulex"</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">"d_galeata"</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">"ballooned"</span><span class="p">},</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">name_map</span><span class="o">=</span><span class="p">{</span><span class="s2">"ballooned"</span><span class="p">:</span> <span class="s2">"ballooned"</span><span class="p">,</span> <span class="s2">"Daphnia"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"d_pulex"</span><span class="p">,</span> <span class="s2">"d_galeata"</span><span class="p">]},</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">mapping</span><span class="o">.</span><span class="n">flatten</span><span class="p">({</span><span class="s2">"Daphnia"</span><span class="p">:</span> <span class="s2">"d_galeata"</span><span class="p">})</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">{0: 2, 1: 1}</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hires/classes.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-92"> 92</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-93"> 93</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-120">120</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-122">122</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-123">123</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-124">124</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-125">125</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-126">126</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-127">127</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#hires.build_class_mapping--source--__codelineno-0-148">148</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="hires.build_class_mapping--source--__codelineno-0-92" name="hires.build_class_mapping--source--__codelineno-0-92"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_class_mapping</span><span class="p">(</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-93" name="hires.build_class_mapping--source--__codelineno-0-93"></a>    <span class="n">old_names</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-94" name="hires.build_class_mapping--source--__codelineno-0-94"></a>    <span class="n">new_names</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-95" name="hires.build_class_mapping--source--__codelineno-0-95"></a>    <span class="n">name_map</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-96" name="hires.build_class_mapping--source--__codelineno-0-96"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassMapping</span><span class="p">:</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-97" name="hires.build_class_mapping--source--__codelineno-0-97"></a><span class="w">    </span><span class="sd">"""Build a :class:`ClassMapping` between two class-name schemas.</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-98" name="hires.build_class_mapping--source--__codelineno-0-98"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-99" name="hires.build_class_mapping--source--__codelineno-0-99"></a><span class="sd">    Parameters</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-100" name="hires.build_class_mapping--source--__codelineno-0-100"></a><span class="sd">    ----------</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-101" name="hires.build_class_mapping--source--__codelineno-0-101"></a><span class="sd">    old_names : mapping of int to str</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-102" name="hires.build_class_mapping--source--__codelineno-0-102"></a><span class="sd">        ``{old_id: old_label}`` of the schema the annotations currently use.</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-103" name="hires.build_class_mapping--source--__codelineno-0-103"></a><span class="sd">    new_names : mapping of int to str</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-104" name="hires.build_class_mapping--source--__codelineno-0-104"></a><span class="sd">        ``{new_id: new_label}`` of the target schema.</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-105" name="hires.build_class_mapping--source--__codelineno-0-105"></a><span class="sd">    name_map : mapping of str to (str or sequence of str)</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-106" name="hires.build_class_mapping--source--__codelineno-0-106"></a><span class="sd">        ``{old_label: new_label}`` for a direct rename, or</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-107" name="hires.build_class_mapping--source--__codelineno-0-107"></a><span class="sd">        ``{old_label: [candidate_new_labels]}`` for a class that is split in</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-108" name="hires.build_class_mapping--source--__codelineno-0-108"></a><span class="sd">        the new schema. Ambiguous entries are resolved per call to</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-109" name="hires.build_class_mapping--source--__codelineno-0-109"></a><span class="sd">        ``remap_classes``.</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-110" name="hires.build_class_mapping--source--__codelineno-0-110"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-111" name="hires.build_class_mapping--source--__codelineno-0-111"></a><span class="sd">    Returns</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-112" name="hires.build_class_mapping--source--__codelineno-0-112"></a><span class="sd">    -------</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-113" name="hires.build_class_mapping--source--__codelineno-0-113"></a><span class="sd">    ClassMapping</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-114" name="hires.build_class_mapping--source--__codelineno-0-114"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-115" name="hires.build_class_mapping--source--__codelineno-0-115"></a><span class="sd">    Raises</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-116" name="hires.build_class_mapping--source--__codelineno-0-116"></a><span class="sd">    ------</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-117" name="hires.build_class_mapping--source--__codelineno-0-117"></a><span class="sd">    KeyError</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-118" name="hires.build_class_mapping--source--__codelineno-0-118"></a><span class="sd">        If an old label has no entry in ``name_map`` or a target label does</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-119" name="hires.build_class_mapping--source--__codelineno-0-119"></a><span class="sd">        not exist in ``new_names``.</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-120" name="hires.build_class_mapping--source--__codelineno-0-120"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-121" name="hires.build_class_mapping--source--__codelineno-0-121"></a><span class="sd">    Examples</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-122" name="hires.build_class_mapping--source--__codelineno-0-122"></a><span class="sd">    --------</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-123" name="hires.build_class_mapping--source--__codelineno-0-123"></a><span class="sd">    &gt;&gt;&gt; mapping = build_class_mapping(</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-124" name="hires.build_class_mapping--source--__codelineno-0-124"></a><span class="sd">    ...     old_names={0: "ballooned", 1: "Daphnia"},</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-125" name="hires.build_class_mapping--source--__codelineno-0-125"></a><span class="sd">    ...     new_names={0: "d_pulex", 1: "d_galeata", 2: "ballooned"},</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-126" name="hires.build_class_mapping--source--__codelineno-0-126"></a><span class="sd">    ...     name_map={"ballooned": "ballooned", "Daphnia": ["d_pulex", "d_galeata"]},</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-127" name="hires.build_class_mapping--source--__codelineno-0-127"></a><span class="sd">    ... )</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-128" name="hires.build_class_mapping--source--__codelineno-0-128"></a><span class="sd">    &gt;&gt;&gt; mapping.flatten({"Daphnia": "d_galeata"})</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-129" name="hires.build_class_mapping--source--__codelineno-0-129"></a><span class="sd">    {0: 2, 1: 1}</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-130" name="hires.build_class_mapping--source--__codelineno-0-130"></a><span class="sd">    """</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-131" name="hires.build_class_mapping--source--__codelineno-0-131"></a>    <span class="n">new_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">id_</span> <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">new_names</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-132" name="hires.build_class_mapping--source--__codelineno-0-132"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-133" name="hires.build_class_mapping--source--__codelineno-0-133"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">lookup</span><span class="p">(</span><span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-134" name="hires.build_class_mapping--source--__codelineno-0-134"></a>        <span class="k">if</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_ids</span><span class="p">:</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-135" name="hires.build_class_mapping--source--__codelineno-0-135"></a>            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Target label </span><span class="si">{</span><span class="n">label</span><span class="si">!r}</span><span class="s2"> not found in new_names."</span><span class="p">)</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-136" name="hires.build_class_mapping--source--__codelineno-0-136"></a>        <span class="k">return</span> <span class="n">new_ids</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-137" name="hires.build_class_mapping--source--__codelineno-0-137"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-138" name="hires.build_class_mapping--source--__codelineno-0-138"></a>    <span class="n">mapping</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-139" name="hires.build_class_mapping--source--__codelineno-0-139"></a>    <span class="k">for</span> <span class="n">old_id</span><span class="p">,</span> <span class="n">old_label</span> <span class="ow">in</span> <span class="n">old_names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-140" name="hires.build_class_mapping--source--__codelineno-0-140"></a>        <span class="k">if</span> <span class="n">old_label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name_map</span><span class="p">:</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-141" name="hires.build_class_mapping--source--__codelineno-0-141"></a>            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"name_map has no entry for old label </span><span class="si">{</span><span class="n">old_label</span><span class="si">!r}</span><span class="s2">."</span><span class="p">)</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-142" name="hires.build_class_mapping--source--__codelineno-0-142"></a>        <span class="n">target</span> <span class="o">=</span> <span class="n">name_map</span><span class="p">[</span><span class="n">old_label</span><span class="p">]</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-143" name="hires.build_class_mapping--source--__codelineno-0-143"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-144" name="hires.build_class_mapping--source--__codelineno-0-144"></a>            <span class="n">mapping</span><span class="p">[</span><span class="n">old_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">lookup</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-145" name="hires.build_class_mapping--source--__codelineno-0-145"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-146" name="hires.build_class_mapping--source--__codelineno-0-146"></a>            <span class="n">mapping</span><span class="p">[</span><span class="n">old_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">lookup</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">target</span><span class="p">)</span>
+<a id="hires.build_class_mapping--source--__codelineno-0-147" name="hires.build_class_mapping--source--__codelineno-0-147"></a>
+<a id="hires.build_class_mapping--source--__codelineno-0-148" name="hires.build_class_mapping--source--__codelineno-0-148"></a>    <span class="k">return</span> <span class="n">ClassMapping</span><span class="p">(</span><span class="n">mapping</span><span class="o">=</span><span class="n">mapping</span><span class="p">,</span> <span class="n">old_names</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">old_names</span><span class="p">),</span> <span class="n">new_names</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">new_names</span><span class="p">))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="hires.ClassMapping" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">hires.ClassMapping</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#hires.ClassMapping" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ClassMapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">old_names</span><span class="p">,</span> <span class="n">new_names</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>A reusable translation between two class-name schemas.</p>
+<p>Build one with <a class="autorefs autorefs-internal" title="            hires.build_class_mapping" href="#hires.build_class_mapping"><code>build_class_mapping</code></a> and pass it to
+<a class="autorefs autorefs-internal" title="            remap_classes" href="collection.html#hires.Collection.remap_classes"><code>Collection.remap_classes</code></a> or <a class="autorefs autorefs-internal" title="            remap_classes" href="album.html#hires.Album.remap_classes"><code>Album.remap_classes</code></a>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>mapping</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{old_id: new_id}</code> for one-to-one renames, or
+<code>{old_id: [candidate_new_ids]}</code> for an old class that was split
+into several new classes (an <em>ambiguous</em> entry).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>old_names</code>
+            </td>
+            <td>
+                  <code>dict of int to str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{old_id: old_label}</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>new_names</code>
+            </td>
+            <td>
+                  <code>dict of int to str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{new_id: new_label}</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            flatten (hires.ClassMapping.flatten)" href="#hires.ClassMapping.flatten">flatten</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Resolve ambiguous entries and return a flat <code>{old_id: new_id}</code> dict.</p>
+                </div>
+              </td>
+            </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="hires.ClassMapping.flatten" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">flatten</span>
+
+
+<a href="#hires.ClassMapping.flatten" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">flatten</span><span class="p">(</span><span class="n">resolve</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Resolve ambiguous entries and return a flat <code>{old_id: new_id}</code> dict.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>resolve</code>
+            </td>
+            <td>
+                  <code>mapping of str to str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>{old_label: chosen_new_label}</code>. Required for every ambiguous
+entry.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError">KeyError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If an ambiguous label is missing from <code>resolve</code> or the chosen
+label does not exist in the new schema.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the chosen label is not one of the declared candidates.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hires/classes.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-72">72</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#hires.ClassMapping.flatten--source--__codelineno-0-76">76</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="hires.ClassMapping.flatten--source--__codelineno-0-34" name="hires.ClassMapping.flatten--source--__codelineno-0-34"></a><span class="k">def</span><span class="w"> </span><span class="nf">flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolve</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-35" name="hires.ClassMapping.flatten--source--__codelineno-0-35"></a><span class="w">    </span><span class="sd">"""Resolve ambiguous entries and return a flat ``{old_id: new_id}`` dict.</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-36" name="hires.ClassMapping.flatten--source--__codelineno-0-36"></a>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-37" name="hires.ClassMapping.flatten--source--__codelineno-0-37"></a><span class="sd">    Parameters</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-38" name="hires.ClassMapping.flatten--source--__codelineno-0-38"></a><span class="sd">    ----------</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-39" name="hires.ClassMapping.flatten--source--__codelineno-0-39"></a><span class="sd">    resolve : mapping of str to str, optional</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-40" name="hires.ClassMapping.flatten--source--__codelineno-0-40"></a><span class="sd">        ``{old_label: chosen_new_label}``. Required for every ambiguous</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-41" name="hires.ClassMapping.flatten--source--__codelineno-0-41"></a><span class="sd">        entry.</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-42" name="hires.ClassMapping.flatten--source--__codelineno-0-42"></a>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-43" name="hires.ClassMapping.flatten--source--__codelineno-0-43"></a><span class="sd">    Raises</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-44" name="hires.ClassMapping.flatten--source--__codelineno-0-44"></a><span class="sd">    ------</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-45" name="hires.ClassMapping.flatten--source--__codelineno-0-45"></a><span class="sd">    KeyError</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-46" name="hires.ClassMapping.flatten--source--__codelineno-0-46"></a><span class="sd">        If an ambiguous label is missing from ``resolve`` or the chosen</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-47" name="hires.ClassMapping.flatten--source--__codelineno-0-47"></a><span class="sd">        label does not exist in the new schema.</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-48" name="hires.ClassMapping.flatten--source--__codelineno-0-48"></a><span class="sd">    ValueError</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-49" name="hires.ClassMapping.flatten--source--__codelineno-0-49"></a><span class="sd">        If the chosen label is not one of the declared candidates.</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-50" name="hires.ClassMapping.flatten--source--__codelineno-0-50"></a><span class="sd">    """</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-51" name="hires.ClassMapping.flatten--source--__codelineno-0-51"></a>    <span class="n">resolve</span> <span class="o">=</span> <span class="n">resolve</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-52" name="hires.ClassMapping.flatten--source--__codelineno-0-52"></a>    <span class="n">new_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">id_</span> <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_names</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-53" name="hires.ClassMapping.flatten--source--__codelineno-0-53"></a>    <span class="n">flat</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-54" name="hires.ClassMapping.flatten--source--__codelineno-0-54"></a>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-55" name="hires.ClassMapping.flatten--source--__codelineno-0-55"></a>    <span class="k">for</span> <span class="n">old_id</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-56" name="hires.ClassMapping.flatten--source--__codelineno-0-56"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-57" name="hires.ClassMapping.flatten--source--__codelineno-0-57"></a>            <span class="n">flat</span><span class="p">[</span><span class="n">old_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-58" name="hires.ClassMapping.flatten--source--__codelineno-0-58"></a>            <span class="k">continue</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-59" name="hires.ClassMapping.flatten--source--__codelineno-0-59"></a>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-60" name="hires.ClassMapping.flatten--source--__codelineno-0-60"></a>        <span class="n">old_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_names</span><span class="p">[</span><span class="n">old_id</span><span class="p">]</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-61" name="hires.ClassMapping.flatten--source--__codelineno-0-61"></a>        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">new_names</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">]</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-62" name="hires.ClassMapping.flatten--source--__codelineno-0-62"></a>        <span class="k">if</span> <span class="n">old_label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">resolve</span><span class="p">:</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-63" name="hires.ClassMapping.flatten--source--__codelineno-0-63"></a>            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-64" name="hires.ClassMapping.flatten--source--__codelineno-0-64"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">old_label</span><span class="si">!r}</span><span class="s2"> is ambiguous </span><span class="si">{</span><span class="n">candidates</span><span class="si">}</span><span class="s2">; choose one with resolve."</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-65" name="hires.ClassMapping.flatten--source--__codelineno-0-65"></a>            <span class="p">)</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-66" name="hires.ClassMapping.flatten--source--__codelineno-0-66"></a>        <span class="n">chosen</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">[</span><span class="n">old_label</span><span class="p">]</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-67" name="hires.ClassMapping.flatten--source--__codelineno-0-67"></a>        <span class="k">if</span> <span class="n">chosen</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_ids</span><span class="p">:</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-68" name="hires.ClassMapping.flatten--source--__codelineno-0-68"></a>            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">chosen</span><span class="si">!r}</span><span class="s2"> is not a label of the new schema."</span><span class="p">)</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-69" name="hires.ClassMapping.flatten--source--__codelineno-0-69"></a>        <span class="k">if</span> <span class="n">new_ids</span><span class="p">[</span><span class="n">chosen</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-70" name="hires.ClassMapping.flatten--source--__codelineno-0-70"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-71" name="hires.ClassMapping.flatten--source--__codelineno-0-71"></a>                <span class="sa">f</span><span class="s2">"resolve[</span><span class="si">{</span><span class="n">old_label</span><span class="si">!r}</span><span class="s2">] = </span><span class="si">{</span><span class="n">chosen</span><span class="si">!r}</span><span class="s2"> is not among the "</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-72" name="hires.ClassMapping.flatten--source--__codelineno-0-72"></a>                <span class="sa">f</span><span class="s2">"declared candidates </span><span class="si">{</span><span class="n">candidates</span><span class="si">}</span><span class="s2">."</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-73" name="hires.ClassMapping.flatten--source--__codelineno-0-73"></a>            <span class="p">)</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-74" name="hires.ClassMapping.flatten--source--__codelineno-0-74"></a>        <span class="n">flat</span><span class="p">[</span><span class="n">old_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_ids</span><span class="p">[</span><span class="n">chosen</span><span class="p">]</span>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-75" name="hires.ClassMapping.flatten--source--__codelineno-0-75"></a>
+<a id="hires.ClassMapping.flatten--source--__codelineno-0-76" name="hires.ClassMapping.flatten--source--__codelineno-0-76"></a>    <span class="k">return</span> <span class="n">flat</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="measurement.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Measurement">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Measurement
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="metrics.html" class="md-footer__link md-footer__link--next" aria-label="Next: Evaluation (hires.metrics)">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Evaluation (hires.metrics)
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; Stylianos Mavrianos. Released under the MIT License.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.tracking", "toc.follow", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
