@@ -1,114 +1,42 @@
-# ============================================================
-# HiReS Makefile
-# Works on Linux, macOS, and Windows (with Git Bash or WSL)
-# ============================================================
+# HiReS development tasks. Run `make help` for a list.
+# Uses the interpreter of the active environment; override with `make PYTHON=...`.
 
-PYTHON = python3
-VENV   = .venv
-PY     = $(VENV)/bin/python
-PIP    = $(PY) -m pip
-BUILD  = $(PY) -m build
-TWINE  = $(PY) -m twine
+PYTHON ?= python
 
-# Default goal
 .DEFAULT_GOAL := help
+.PHONY: help install lint fix test check docs docs-serve build clean release-test
 
-.PHONY: help venv install run test clean distclean deps-publish build wheel sdist release-test release
+help: ## Show this list
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-13s %s\n", $$1, $$2}'
 
-# ------------------------------------------------------------
-# Setup & Environment
-# ------------------------------------------------------------
+install: ## Install HiReS in editable mode with the dev and docs extras
+	$(PYTHON) -m pip install -e ".[dev,docs]"
 
-help:
-	@echo ""
-	@echo "HiReS — High-Resolution Image Segmentation Pipeline"
-	@echo ""
-	@echo "Available commands:"
-	@echo "  make venv           Create a new virtual environment"
-	@echo "  make install        Install HiReS in editable mode"
-	@echo "  make run            Show CLI help (smoke test)"
-	@echo "  make test           Import and print version"
-	@echo "  make clean          Remove caches and build artifacts"
-	@echo "  make distclean      Clean + remove dist/ and egg-info"
-	@echo "  make deps-publish   Install build and twine in venv"
-	@echo "  make build          Clean old dist, then build sdist+wheel"
-	@echo "  make release-test   Upload fresh build to TestPyPI"
-	@echo "  make release        Upload fresh build to PyPI"
-	@echo ""
-	@echo "Tips:"
-	@echo "  export TWINE_USERNAME=__token__"
-	@echo "  export TWINE_PASSWORD=pypi-xxxxxxxxxxxxxxxxxxxxxxxxxx"
-	@echo ""
+lint: ## Check the code with ruff
+	$(PYTHON) -m ruff check .
 
-venv:
-	@echo "Creating virtual environment..."
-	$(PYTHON) -m venv $(VENV)
-	@echo "Virtual environment created in $(VENV)"
-	@echo "Activate it using:"
-	@echo "  source $(VENV)/bin/activate"
-	@$(PIP) install --upgrade pip
+fix: ## Apply the safe ruff fixes
+	$(PYTHON) -m ruff check --fix .
 
-install:
-	@echo "Installing HiReS in editable mode..."
-	@$(PIP) install -e .
-	@echo "Installed successfully!"
+test: ## Run the test suite
+	$(PYTHON) -m pytest
 
-# ------------------------------------------------------------
-# Run / Test
-# ------------------------------------------------------------
+check: lint test ## Run everything CI runs
 
-run:
-	@echo "Running HiReS CLI..."
-	@$(VENV)/bin/hires --help
+docs: ## Build the documentation in strict mode
+	$(PYTHON) -m mkdocs build --strict
 
-test:
-	@echo "Testing import and version..."
-	@$(PY) -c "import HiReS; print('HiReS version:', getattr(HiReS, '__version__', 'unknown'))"
+docs-serve: ## Serve the documentation with live reload
+	$(PYTHON) -m mkdocs serve
 
-# ------------------------------------------------------------
-# Maintenance & Publishing
-# ------------------------------------------------------------
+build: clean ## Build the sdist and wheel into dist/
+	$(PYTHON) -m pip install --quiet --upgrade build twine
+	$(PYTHON) -m build
+	$(PYTHON) -m twine check dist/*
 
-clean:
-	@echo "Cleaning caches..."
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	@echo "Clean complete"
+clean: ## Remove build artifacts and caches
+	rm -rf build dist site *.egg-info .pytest_cache .ruff_cache
+	find . -type d -name __pycache__ -not -path "./.venv/*" -exec rm -rf {} +
 
-distclean: clean
-	@echo "Removing build artifacts..."
-	rm -rf build dist *.egg-info
-	@echo "Dist clean complete"
-
-deps-publish:
-	@echo "Installing build & twine..."
-	@$(PIP) install --upgrade build twine
-	@echo "Done."
-
-# Build both sdist and wheel from a clean state
-build: distclean deps-publish
-	@echo "Building new distribution..."
-	@$(BUILD)
-	@echo "Artifacts in ./dist:"
-	@ls -1 dist || true
-
-# Convenience targets if you ever want them separately
-wheel:
-	@$(PIP) install --upgrade build
-	@$(BUILD) --wheel
-
-sdist:
-	@$(PIP) install --upgrade build
-	@$(BUILD) --sdist
-
-# Upload to TestPyPI (recommended first)
-release-test: build
-	@echo "Uploading to TestPyPI..."
-	@$(TWINE) upload --repository testpypi dist/*
-	@echo "TestPyPI upload done."
-	@echo "Verify: pip install --index-url https://test.pypi.org/simple --extra-index-url https://pypi.org/simple <your-project>"
-
-# Upload to PyPI (production)
-release: build
-	@echo "Uploading to PyPI..."
-	@$(TWINE) upload dist/*
-	@echo "PyPI upload done."
+release-test: build ## Upload the build to TestPyPI (releases to PyPI are made by CI)
+	$(PYTHON) -m twine upload --repository testpypi dist/*

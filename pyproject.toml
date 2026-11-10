@@ -1,30 +1,85 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "hireseg"
-version = "1.1.0"
+version = "2.0.0"
+description = "Tiled instance segmentation and morphometric analysis of high-resolution images"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "numpy>=2.1",
-    "pandas>=2.2",
-    "matplotlib>=3.9",
-    "opencv-python>=4.10",
-    "shapely>=2.1",
-    "ultralytics>=8.3",
-    "tqdm>=4.66",
-    "pyyaml>=6.0",
-    "scipy>=1.14",
-    "SkillMetrics>=1.2",
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Stylianos Mavrianos", email = "stylianosmavrianos@gmail.com" }]
+keywords = ["segmentation", "morphometrics", "microscopy", "plankton", "yolo", "polygons"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Typing :: Typed",
 ]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "shapely>=2.0",
+    "pillow>=10",
+    "opencv-python>=4.8",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Running YOLO models: hires.segment, hires.Segmenter, hires.run_pipeline, `hires run`.
+yolo = ["ultralytics>=8.3"]
+# The legacy trait-agreement plots in hires.analysis.
+analysis = ["scipy>=1.11", "plotnine>=0.13", "SkillMetrics>=1.2"]
+all = ["hireseg[yolo,analysis]"]
+dev = ["pytest>=8", "ruff>=0.6"]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.26"]
+
+[project.urls]
+Documentation = "https://stevethegreek97.github.io/HiReS/"
+Repository = "https://github.com/StevetheGreek97/HiReS"
+Issues = "https://github.com/StevetheGreek97/HiReS/issues"
+Changelog = "https://github.com/StevetheGreek97/HiReS/blob/main/CHANGELOG.md"
 
 [project.scripts]
 hires = "hires.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-exclude = [".venv*", "test*"]
+include = ["hires*"]
 
 [tool.setuptools.package-data]
 hires = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--doctest-modules --doctest-glob='*.md' -p no:cacheprovider"
+filterwarnings = ["error::hires.HiresWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["test", "docs", "hires/analysis"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D"]
+ignore = [
+    "D105",   # magic methods are documented by the data model
+    "D107",   # __init__ is documented in the class docstring (numpydoc)
+    "RUF022", # __all__ is grouped by topic, not sorted
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"hires/cli.py" = ["E501"]

@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use HiReS in your research, please cite it as below."
+title: "HiReS: High-Resolution Segmentation"
+type: software
+authors:
+  - family-names: Mavrianos
+    given-names: Stylianos
+repository-code: "https://github.com/StevetheGreek97/HiReS"
+url: "https://stevethegreek97.github.io/HiReS/"
+license: MIT
+version: 2.0.0
+keywords:
+  - instance segmentation
+  - morphometrics
+  - high-resolution imaging
+  - plankton
+  - YOLO
+preferred-citation:
+  type: unpublished
+  title: "HiReS: A Method for Automated Morphometric Trait Extraction from High-Resolution Plankton Images"
+  year: 2025
+  authors:
+    - family-names: Mavrianos
+      given-names: Stylianos
+    - family-names: Teurlincx
+      given-names: S.
+    - family-names: Declerck
+      given-names: S. A. J.
+    - family-names: Otte
+      given-names: K. A.

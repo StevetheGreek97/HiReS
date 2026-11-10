@@ -24,6 +24,22 @@ _IGNORED_DESCRIPTOR_SUFFIXES = {
     "crop_path",
 }
 
+_DESCRIPTOR_DISPLAY_NAMES: dict[str, str] = {
+    "obb_w": "obb width",
+    "obb_l": "obb length",
+    "obb_width": "obb width",
+    "obb_length": "obb length",
+    "bbox_w": "bbox width",
+    "bbox_h": "bbox height",
+    "bbox_width": "bbox width",
+    "bbox_height": "bbox height",
+}
+
+
+def _descriptor_display(name: str) -> str:
+    """Human-readable label for a descriptor column name."""
+    return _DESCRIPTOR_DISPLAY_NAMES.get(str(name), str(name).replace("_", " "))
+
 def _require_columns(data: Any, columns: Sequence[str], *, context: str) -> None:
     missing = sorted(set(columns).difference(data.columns))
     if missing:
@@ -124,6 +140,14 @@ def _normalized_class_names(
         except (TypeError, ValueError):
             continue
     return normalized
+
+
+def _fmt_species(name: str) -> str:
+    """Format a species name: 'D_pulex' → 'D. pulex', 'S_vetulus' → 'S. vetulus'."""
+    parts = str(name).replace("_", " ").split(" ", 1)
+    if len(parts) == 2 and len(parts[0]) == 1:
+        return parts[0].upper() + ". " + parts[1]
+    return str(name).replace("_", " ")
 
 
 def _descriptor_columns_in_order(data: Any) -> list[str]:
@@ -250,6 +274,8 @@ def _sample_column_name(data: Any) -> str | None:
         return "sample"
     if "file_name" in data.columns:
         return "file_name"
+    if "image" in data.columns:  # hires.metrics.MatchResult.to_frame()
+        return "image"
     return None
 
 def _ensure_sample_column(data: Any) -> Any:
@@ -375,7 +401,7 @@ def _class_items_for_frame(
 
     ordered_ids = sorted(class_id for class_id in class_ids if class_id not in excluded_ids)
     return [
-        (class_id, normalized_names.get(class_id, str(class_id)))
+        (class_id, _fmt_species(normalized_names.get(class_id, str(class_id))))
         for class_id in ordered_ids
     ]
 
@@ -840,9 +866,10 @@ def distributions(
     if processed.empty or not class_items:
         return processed, None
 
-    pred_set_label = "Pred (TP only)" if only_tp else "Pred"
+    pred_set_label = "Pred"
     species_order = [str(name) for _, name in class_items]
-    descriptor_order = [str(column) for column in selected_columns]
+    descriptor_label_map = {str(col): _descriptor_display(str(col)) for col in selected_columns}
+    descriptor_order = [descriptor_label_map[str(col)] for col in selected_columns]
     panel_order = [
         f"{species} | {descriptor}"
         for species in species_order
@@ -854,8 +881,9 @@ def distributions(
 
     for class_id, species in class_items:
         species_label = str(species)
-        for column in descriptor_order:
-            panel = f"{species_label} | {column}"
+        for column in selected_columns:
+            column_label = descriptor_label_map[str(column)]
+            panel = f"{species_label} | {column_label}"
             gt_column = f"gt_{column}"
             pred_column = f"pred_{column}"
 
@@ -885,7 +913,7 @@ def distributions(
                     {
                         "panel": panel,
                         "species": species_label,
-                        "descriptor": str(column),
+                        "descriptor": column_label,
                         "set": "GT",
                         "value": float(value),
                     }
@@ -896,7 +924,7 @@ def distributions(
                     {
                         "panel": panel,
                         "species": species_label,
-                        "descriptor": str(column),
+                        "descriptor": column_label,
                         "set": pred_set_label,
                         "value": float(value),
                     }
@@ -918,13 +946,13 @@ def distributions(
                 if not np.isfinite(ymax) or ymax <= 0:
                     ymax = 1.0
 
-                x_text = x_min + 0.02 * (x_max - x_min if x_max > x_min else 1.0)
+                x_text = x_max - 0.02 * (x_max - x_min if x_max > x_min else 1.0)
                 y_text = ymax * 0.98
                 mean_diff = float(np.mean(pred_vals) - np.mean(gt_vals))
                 ann_rows.append(
                     {
                         "species": species_label,
-                        "descriptor": str(column),
+                        "descriptor": column_label,
                         "panel": panel,
                         "x_lab": x_text,
                         "y_lab": y_text,
@@ -979,7 +1007,6 @@ def distributions(
         + plotnine.labs(
             x="log10(value)" if log else "value",
             y="Density",
-            title=f"GT vs {pred_set_label} Descriptor Distributions",
         )
         + plotnine.theme_bw()
         + plotnine.theme(
@@ -1010,7 +1037,7 @@ def distributions(
             data=ann_df,
             mapping=plotnine.aes(x="x_lab", y="y_lab", label="label"),
             inherit_aes=False,
-            ha="left",
+            ha="right",
             va="top",
             size=7,
         )
@@ -1279,7 +1306,7 @@ def bland_altman(
         return pd.DataFrame(columns=["species", "descriptor", "x", "y"]), None
 
     ncols = len(selected_columns)
-    descriptor_label_map = {str(column): str(column).replace("_", " ") for column in selected_columns}
+    descriptor_label_map = {str(column): _descriptor_display(str(column)) for column in selected_columns}
     descriptor_order = [descriptor_label_map[str(column)] for column in selected_columns]
     cache: dict[tuple[int, int], dict[str, Any] | None] = {}
 
@@ -1430,23 +1457,14 @@ def bland_altman(
                 for x_value, y_value in zip(mean_axis, diff)
             )
 
-            line_rows.extend(
-                [
-                    {
-                        "species": species_label,
-                        "descriptor": descriptor_label,
-                        "line_type": "Zero bias (0)",
-                        "slope": 0.0,
-                        "intercept": 0.0,
-                    },
-                    {
-                        "species": species_label,
-                        "descriptor": descriptor_label,
-                        "line_type": "Mean bias",
-                        "slope": 0.0,
-                        "intercept": mean_diff,
-                    },
-                ]
+            line_rows.append(
+                {
+                    "species": species_label,
+                    "descriptor": descriptor_label,
+                    "line_type": "Zero bias (0)",
+                    "slope": 0.0,
+                    "intercept": 0.0,
+                }
             )
 
             if regression is not None:
@@ -1515,17 +1533,15 @@ def bland_altman(
     if not line_df.empty:
         line_df["line_type"] = pd.Categorical(
             line_df["line_type"],
-            categories=["Mean bias", "Trend vs size", "Zero bias (0)"],
+            categories=["Trend vs size", "Zero bias (0)"],
             ordered=True,
         )
 
     color_map = {
-        "Mean bias": "#111827",
         "Zero bias (0)": "#dc2626",
         "Trend vs size": "#d97706",
     }
     linetype_map = {
-        "Mean bias": "solid",
         "Zero bias (0)": "solid",
         "Trend vs size": "dashdot",
     }
@@ -1536,9 +1552,8 @@ def bland_altman(
         + plotnine.geom_blank(data=bounds_df, mapping=plotnine.aes(x="x", y="y"), inherit_aes=False)
         + plotnine.facet_wrap("~ panel", ncol=ncols, scales="free", drop=False)
         + plotnine.labs(
-            title="Log-Bias Bland-Altman Grid" if bool(log) else "Bland-Altman Grid",
-            x="mean(log10 GT, log10 Pred)" if bool(log) else "mean(ln GT, ln Pred)",
-            y="log10(Pred / GT)" if bool(log) else "ln(Pred / GT)",
+            x="Mean log₁₀(size)" if bool(log) else "Mean ln(size)",
+            y="Δlog₁₀(size)" if bool(log) else "Δln(size)",
             color="",
             linetype="",
         )
@@ -1546,9 +1561,7 @@ def bland_altman(
         + plotnine.theme(
             figure_size=(4.5 * ncols, 3.0 * nrows),
             strip_text=plotnine.element_text(weight="bold"),
-            plot_title=plotnine.element_text(weight="bold", ha="center"),
-            legend_position="bottom",
-            legend_direction="horizontal",
+            legend_position="none",
             axis_text_x=plotnine.element_text(size=8),
             axis_text_y=plotnine.element_text(size=8),
             subplots_adjust={"wspace": 0.12, "hspace": 0.12},
@@ -2050,7 +2063,7 @@ def target_diagram(
     if frame.empty:
         raise ValueError("No matched pairs found for target diagram plotting.")
 
-    descriptor_label_map = {str(column): str(column).replace("_", " ") for column in selected_columns}
+    descriptor_label_map = {str(column): _descriptor_display(str(column)) for column in selected_columns}
     descriptor_order = [descriptor_label_map[str(column)] for column in selected_columns]
     species_order = [str(name) for _, name in class_items]
     empty_columns = [
@@ -2323,12 +2336,6 @@ def target_diagram(
         for species in species_order
     ]
 
-    figure.suptitle(
-        f"Normalized Target Diagram ({scale_label})",
-        y=0.98,
-        fontweight="bold",
-        fontsize=14,
-    )
     figure.legend(
         handles=legend_handles,
         title="Species",
@@ -2338,7 +2345,7 @@ def target_diagram(
         fontsize=8,
         title_fontsize=9,
     )
-    figure.tight_layout(rect=[0.0, 0.04, 0.86, 0.92])
+    figure.tight_layout(rect=[0.0, 0.04, 0.86, 0.98])
 
     _save_matplotlib_if_requested(figure, save, "target_diagram.png")
     _show_or_close_matplotlib(figure, show)
