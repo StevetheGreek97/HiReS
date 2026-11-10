@@ -4,7 +4,7 @@
 PYTHON ?= python
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fix test check docs docs-serve build clean release-test
+.PHONY: help install lint fix test check examples docs docs-serve build clean release-test
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-13s %s\n", $$1, $$2}'
@@ -22,6 +22,9 @@ test: ## Run the test suite
 	$(PYTHON) -m pytest
 
 check: lint test ## Run everything CI runs
+
+examples: ## Re-run the >>> examples in docs/ and rewrite their output and figures
+	$(PYTHON) tools/doc_examples.py
 
 docs: ## Build the documentation in strict mode
 	$(PYTHON) -m mkdocs build --strict

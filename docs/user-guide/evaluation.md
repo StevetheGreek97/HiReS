@@ -8,46 +8,51 @@ how to inspect individual objects.
 All functions live in [`hires.metrics`](../reference/metrics.md) and take
 the **ground truth first** and the **predictions second**.
 
-## The short version
+## The example
+
+The examples use one small image with four ground-truth objects, two of
+class 0 (top row) and two of class 1 (bottom row), and four predictions
+that contain every kind of mistake:
 
 ```python
-gt = hires.read_album("labels/", image_dir="scans/")
-pred = hires.read_album("results/", image_dir="scans/")
-
-report = hires.evaluate(gt, pred, "evaluation/")
+>>> from shapely.geometry import box
+>>> import hires
+>>> gt = hires.Collection(
+...     [
+...         hires.Annotation(0, box(0.10, 0.10, 0.30, 0.30)),
+...         hires.Annotation(0, box(0.50, 0.10, 0.70, 0.30)),
+...         hires.Annotation(1, box(0.10, 0.60, 0.30, 0.80)),
+...         hires.Annotation(1, box(0.50, 0.60, 0.70, 0.80)),
+...     ],
+...     name="scan",
+...     image_size=(400, 400),
+... )
+>>> pred = hires.Collection(
+...     [
+...         hires.Annotation(0, box(0.10, 0.10, 0.30, 0.30), confidence=0.95),  # exact
+...         hires.Annotation(0, box(0.50, 0.10, 0.70, 0.26), confidence=0.80),  # too small
+...         hires.Annotation(0, box(0.10, 0.60, 0.30, 0.80), confidence=0.70),  # wrong class
+...         hires.Annotation(1, box(0.80, 0.40, 0.90, 0.50), confidence=0.40),  # not an object
+...     ],
+...     name="scan",
+...     image_size=(400, 400),
+... )
 ```
 
-[`hires.evaluate`][hires.evaluate] writes the detection report, the
-confusion matrix, the precision-recall curve, a table of all matches and one
-comparison image per scan (see
-[Output files](../reference/outputs.md#hires-evaluate)) and returns the
-detection report. The rest of this page describes the pieces it is built
-from.
-
-## Inputs
-
-Both arguments are either two [`Collection`][hires.Collection] objects, for
-one image, or two [`Album`][hires.Album] objects, for a dataset. Albums are
-paired **by collection name**, which for albums read from disk is the file
-stem of the label file.
-
-Collections that exist on only one side are skipped and reported:
+The fourth ground-truth object has no prediction at all. Drawn on an empty
+canvas with [`hires.plot.comparison`](plotting.md#predictions-versus-ground-truth),
+the situation looks like this (green: correct, orange: wrong class, red:
+false positive, blue: missed):
 
 ```python
-matches = hires.metrics.match(gt, pred)
-matches.unpaired_gt     # names found only in the ground truth
-matches.unpaired_pred   # names found only in the predictions
+>>> import numpy as np
+>>> canvas = np.full((400, 400, 3), 70, dtype=np.uint8)
+>>> _ = hires.plot.comparison(
+...     canvas, hires.metrics.match(gt, pred), save="evaluation_comparison.png"
+... )
 ```
 
-Pass `strict=True` to raise an error instead. An image **without objects**
-still needs an (empty) label file on both sides; otherwise its false
-positives go unnoticed.
-
-!!! tip "Different class schemas"
-
-    If ground truth and predictions number their classes differently,
-    translate one side first; see
-    [Translating class ids](filtering.md#translating-class-ids).
+![The example matches drawn on a canvas](../assets/examples/evaluation_comparison.png){ width="360" }
 
 ## Matching
 
@@ -58,7 +63,20 @@ $$
 \text{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|},
 $$
 
-computed on the polygons themselves, not on their bounding boxes.
+computed on the polygons themselves, not on their bounding boxes:
+
+```python
+>>> round(hires.metrics.iou(gt[1], pred[1]), 2)
+0.8
+>>> hires.metrics.iou_matrix(gt, pred).round(2)
+array([[1. , 0. , 0. , 0. ],
+       [0. , 0.8, 0. , 0. ],
+       [0. , 0. , 1. , 0. ],
+       [0. , 0. , 0. , 0. ]])
+```
+
+The matrix has one row per ground-truth object and one column per
+prediction. Matching then proceeds in three steps:
 
 1. All pairs with $\text{IoU} \ge t$ are candidates. The threshold $t$ is
    `iou_threshold`, `0.5` by default.
@@ -68,8 +86,16 @@ computed on the polygons themselves, not on their bounding boxes.
 3. Whatever remains unmatched becomes a false negative (ground truth) or a
    false positive (prediction).
 
-Every object therefore ends up in exactly one [`Match`][hires.metrics.Match]
-with one of four statuses:
+```python
+>>> matches = hires.metrics.match(gt, pred)
+>>> matches
+MatchResult(iou_threshold=0.5, tp=2, misclassified=1, fp=1, fn=1)
+>>> matches.counts()
+{'tp': 2, 'misclassified': 1, 'fp': 1, 'fn': 1}
+```
+
+Every object ends up in exactly one [`Match`][hires.metrics.Match] with one
+of four statuses:
 
 | Status | Ground truth | Prediction | Meaning |
 |--------|:------------:|:----------:|---------|
@@ -78,18 +104,26 @@ with one of four statuses:
 | `fp` | – | ✓ | A prediction where there is no object |
 | `fn` | ✓ | – | An object the model missed |
 
-### Class-agnostic and class-aware matching
+```python
+>>> for m in matches:
+...     print(f"{m.status:14} iou={m.iou:.2f}  gt={m.gt_index}  pred={m.pred_index}")
+tp             iou=1.00  gt=0  pred=0
+misclassified  iou=1.00  gt=2  pred=2
+tp             iou=0.80  gt=1  pred=1
+fn             iou=0.00  gt=3  pred=None
+fp             iou=0.00  gt=None  pred=3
+```
 
-By default, matching ignores the class: an object that was outlined
-correctly but labelled wrongly is one `misclassified` match. This separates
-*localisation* errors from *classification* errors, which is usually what
-you want to know.
+### The IoU threshold
 
-With `class_aware=True` only polygons of the same class may match, so the
-same object yields one `fn` and one `fp`. The aggregate metrics below are
-identical either way; only the bookkeeping differs.
+A stricter threshold demands better outlines. At `0.9` the prediction that
+is too small no longer counts as a match, and turns into one missed object
+plus one false positive:
 
-### Choosing the IoU threshold
+```python
+>>> hires.metrics.match(gt, pred, iou_threshold=0.9).counts()
+{'tp': 1, 'misclassified': 1, 'fp': 2, 'fn': 2}
+```
 
 | `iou_threshold` | Asks |
 |-----------------|------|
@@ -97,35 +131,76 @@ identical either way; only the bookkeeping differs.
 | `0.7`–`0.8` | Is the outline good enough to measure? Use this when the downstream analysis is morphometric. |
 | `0.9` and above | Rarely meaningful: two careful human annotators often agree less than that on small objects. |
 
+### Class-agnostic and class-aware matching
+
+By default, matching ignores the class: an object that was outlined
+correctly but labelled wrongly is one `misclassified` match. This separates
+*localisation* errors from *classification* errors.
+
+With `class_aware=True` only polygons of the same class may match, so the
+same object yields one `fn` and one `fp`:
+
+```python
+>>> hires.metrics.match(gt, pred, class_aware=True).counts()
+{'tp': 2, 'misclassified': 0, 'fp': 2, 'fn': 2}
+```
+
+The metrics below are the same either way; only the bookkeeping differs.
+
 ## Working with the result
 
 `match` returns a [`MatchResult`][hires.metrics.MatchResult], an immutable
-sequence of matches:
+sequence of matches that can be indexed, filtered and tabulated:
 
 ```python
-matches = hires.metrics.match(gt, pred, iou_threshold=0.5)
-
-matches.counts()
-# {'tp': 412, 'misclassified': 9, 'fp': 31, 'fn': 27}
-
-matches.summary()
-# n_gt, n_pred, the four counts, precision, recall, f1 and mean_iou
-
-errors = matches.with_status("fp", "fn")       # a smaller MatchResult
-one_scan = matches.for_image("C1-1_control")
-small = matches.filter(lambda m: m.iou < 0.6)
+>>> first = matches[0]
+>>> first.status, first.iou, first.gt.class_id, first.pred.confidence
+('tp', 1.0, 0, 0.95)
+>>> matches.with_status("fp", "fn")
+MatchResult(iou_threshold=0.5, tp=0, misclassified=0, fp=1, fn=1)
+>>> matches.filter(lambda m: m.iou > 0.9)
+MatchResult(iou_threshold=0.5, tp=1, misclassified=1, fp=0, fn=0)
 ```
 
-[`to_frame`][hires.metrics.MatchResult.to_frame] turns it into a table with
-one row per match, including the nine traits of both objects as `gt_*` and
+`summary` returns the overall numbers as a dict:
+
+```python
+>>> summary = matches.summary()
+>>> summary["n_gt"], summary["n_pred"]
+(4, 4)
+>>> round(summary["precision"], 2), round(summary["recall"], 2), round(summary["f1"], 2)
+(0.5, 0.5, 0.5)
+>>> round(summary["mean_iou"], 2)
+0.93
+```
+
+[`to_frame`][hires.metrics.MatchResult.to_frame] gives one row per match.
+Row `i` describes `matches[i]`; fields of a missing object are empty:
+
+```python
+>>> names = {0: "pulex", 1: "galeata"}
+>>> table = matches.to_frame(class_names=names)
+>>> table[["status", "iou", "gt_class_name", "pred_class_name", "pred_confidence"]]
+          status  iou gt_class_name pred_class_name  pred_confidence
+0             tp  1.0         pulex           pulex             0.95
+1  misclassified  1.0       galeata           pulex             0.70
+2             tp  0.8         pulex           pulex             0.80
+3             fn  0.0       galeata            None              NaN
+4             fp  0.0          None         galeata             0.40
+```
+
+The table also holds the nine traits of both objects, as `gt_*` and
 `pred_*` columns:
 
 ```python
-table = matches.to_frame(class_names={0: "D. pulex", 1: "D. galeata"})
-table.groupby("status")["iou"].describe()
+>>> table[["status", "gt_area", "pred_area"]]
+          status  gt_area  pred_area
+0             tp   6400.0     6400.0
+1  misclassified   6400.0     6400.0
+2             tp   6400.0     5120.0
+3             fn   6400.0        NaN
+4             fp      NaN     1600.0
 ```
-
-Row `i` of the table describes `matches[i]`.
 
 ## Metrics
 
@@ -143,15 +218,29 @@ whose denominator is zero is reported as `0.0`.
 
 A `misclassified` pair is **both** an error of the ground-truth class,
 which lost an object (FN), and of the predicted class, which gained a wrong
-one (FP). It is counted accordingly.
+one (FP).
 
 ### The detection report
 
 ```python
-report = hires.metrics.detection_report(
-    gt, pred, iou_threshold=0.5, class_names={0: "D. pulex", 1: "D. galeata"}
-)
+>>> report = hires.metrics.detection_report(gt, pred, class_names=names)
+>>> report[["class_name", "tp", "fp", "fn", "precision", "recall", "f1"]].round(2)
+         class_name  tp  fp  fn  precision  recall   f1
+class_id
+all             all   2   2   2       0.50     0.5  0.5
+0             pulex   2   1   0       0.67     1.0  0.8
+1           galeata   0   1   2       0.00     0.0  0.0
+>>> report[["class_name", "ap50", "ap50_95"]].round(2)
+         class_name  ap50  ap50_95
+class_id
+all             all   0.5     0.42
+0             pulex   1.0     0.85
+1           galeata   0.0     0.00
 ```
+
+Reading the row of class 0: two of its objects were found (`tp`); a third
+prediction of class 0 is really a class 1 object (`fp`); nothing of class 0
+was missed (`fn`). Class 1 has no correct prediction at all.
 
 | Column | Content |
 |--------|---------|
@@ -160,10 +249,10 @@ report = hires.metrics.detection_report(
 | `ap50` | Average precision at IoU 0.5 |
 | `ap50_95` | Average precision, averaged over IoU 0.50, 0.55, …, 0.95 |
 
-There is one row per class and a first row `"all"`. In that row the counts
-are summed over the classes and precision, recall and F1 are computed from
-the sums (a *micro* average, dominated by frequent classes), while `ap50`
-and `ap50_95` are the unweighted mean over classes (mAP, a *macro* average).
+In the `"all"` row the counts are summed over the classes and precision,
+recall and F1 are computed from the sums (a *micro* average, dominated by
+frequent classes), while `ap50` and `ap50_95` are the unweighted mean over
+classes (mAP, a *macro* average).
 
 ### Average precision
 
@@ -171,9 +260,20 @@ Precision and recall describe the model at one confidence threshold.
 Average precision (AP) summarises all thresholds: the predictions of a
 class are ranked by confidence, precision and recall are computed for every
 prefix of the ranking, and AP is the area under the resulting
-precision-recall curve, using the usual all-point interpolation in which
-precision at recall $r$ is replaced by the best precision at any recall
-$\ge r$.
+precision-recall curve, using all-point interpolation.
+
+```python
+>>> hires.metrics.average_precision(gt, pred, iou_threshold=0.5).round(2)
+class_id
+0    1.0
+1    0.0
+Name: ap@0.5, dtype: float64
+>>> hires.metrics.average_precision(gt, pred, iou_threshold=0.9).round(2)
+class_id
+0    0.5
+1    0.0
+Name: ap@0.9, dtype: float64
+```
 
 `ap50_95` repeats this for ten IoU thresholds and averages, which rewards
 accurate outlines, not only found objects.
@@ -187,89 +287,162 @@ accurate outlines, not only found objects.
     not necessarily identical with, those printed by Ultralytics.
 
 AP is only meaningful when the predictions were made with a **low
-confidence threshold**. Predictions that were discarded by the model cannot
-be ranked, and the curve stops early.
+confidence threshold**. Predictions that the model discarded cannot be
+ranked, and the curve stops early.
 
 ### Confusion matrix
 
 ```python
-matrix = hires.metrics.confusion_matrix(gt, pred, class_names=names)
-hires.plot.confusion_matrix(matrix, save="confusion.png")
+>>> hires.metrics.confusion_matrix(gt, pred, class_names=names)
+pred        pulex  galeata  background
+gt
+pulex           2        0           0
+galeata         1        0           1
+background      0        1           0
 ```
 
-Rows are the ground-truth class and columns the predicted class. An extra
-`background` row and column collect the unmatched objects: false negatives
-are in the `background` *column* (the object was predicted as nothing),
-false positives in the `background` *row* (nothing was predicted as an
-object). The plot normalizes each row by default, so the diagonal reads as
-per-class recall.
+Rows are the ground-truth class and columns the predicted class. The extra
+`background` row and column collect the unmatched objects: the missed
+object is in the `background` *column* (an object predicted as nothing),
+the false positive in the `background` *row* (nothing predicted as an
+object).
 
 ## Choosing a confidence threshold
 
-The confidence threshold trades precision against recall. To choose it from
-data rather than by eye, segment a validation set with a low threshold and
-compute the curve:
+The confidence threshold trades precision against recall.
+[`precision_recall_curve`][hires.metrics.precision_recall_curve] tells how
+the model would score if only predictions with at least a given confidence
+were kept:
 
 ```python
-pred = hires.run_pipeline("validation/", "model.pt", "low_conf/", confidence=0.05)
-gt = hires.read_album("labels/")
-
-curve = hires.metrics.precision_recall_curve(gt, pred)
-best = curve.loc[curve["f1"].idxmax()]
-best["confidence"], best["precision"], best["recall"]
+>>> curve = hires.metrics.precision_recall_curve(gt, pred)
+>>> curve.round(2)
+   confidence  precision  recall    f1
+0        0.95       1.00    0.25  0.40
+1        0.80       1.00    0.50  0.67
+2        0.70       0.67    0.50  0.57
+3        0.40       0.50    0.50  0.50
 ```
 
-Each row of the curve tells how the model would score if only predictions
-with at least that confidence were kept. The row with the highest F1 is a
-reasonable default; pick a higher threshold if false positives are costly
-(they contaminate trait distributions) and a lower one if missed objects
-are (they bias counts).
+Keeping only predictions with a confidence of 0.8 or more gives perfect
+precision but finds half of the objects; lowering the threshold further
+only adds mistakes. The row with the highest F1 is a reasonable default:
 
 ```python
-hires.plot.precision_recall(curve, save="pr_curve.png")
+>>> best = curve.loc[curve["f1"].idxmax()]
+>>> float(best["confidence"])
+0.8
 ```
 
-Apply the chosen threshold either at inference (`confidence=`) or
-afterwards with
-[`filter_confidence`][hires.Collection.filter_confidence], which needs no
-second model run.
+Pick a higher threshold if false positives are costly (they contaminate
+trait distributions) and a lower one if missed objects are (they bias
+counts). Apply it at inference (`confidence=`) or afterwards, without a
+second model run:
 
-Use `class_id=` for the curve of a single class. Because tiling removes
-border objects before NMS, evaluate on **full images** processed by the
-tiled pipeline, not on the validation tiles used during training: only the
-former measures what you will get in production.
+```python
+>>> hires.metrics.match(gt, pred.filter_confidence(0.8)).counts()
+{'tp': 2, 'misclassified': 0, 'fp': 0, 'fn': 2}
+```
+
+For a real model, segment a validation set with a low threshold first, so
+the curve covers the whole range:
+
+```python
+>>> pred = hires.run_pipeline(  # doctest: +SKIP
+...     "validation/", "model.pt", "low_conf/", confidence=0.05
+... )
+```
+
+Use `class_id=` for the curve of a single class. Evaluate on **full
+images** processed by the tiled pipeline, not on the validation tiles used
+during training: only the former measures what you will get in production.
+
+## Datasets
+
+Everything above works unchanged for two [`Album`][hires.Album] objects.
+Collections are paired **by name**, which for albums read from disk is the
+file stem of the label file:
+
+```python
+>>> gt_album = hires.Album([gt, gt.replace(name="scan_2")])
+>>> pred_album = hires.Album([pred, pred.replace(name="scan_3")])
+>>> matches = hires.metrics.match(gt_album, pred_album)
+>>> matches.images
+['scan']
+>>> matches.unpaired_gt, matches.unpaired_pred
+(('scan_2',), ('scan_3',))
+```
+
+Collections that exist on only one side are skipped and reported, as
+above; pass `strict=True` to raise an error instead. An image **without
+objects** still needs an (empty) label file on both sides; otherwise its
+false positives go unnoticed.
+
+Select the matches of one image with `for_image`:
+
+```python
+>>> matches.for_image("scan").counts()
+{'tp': 2, 'misclassified': 1, 'fp': 1, 'fn': 1}
+```
+
+!!! tip "Different class schemas"
+
+    If ground truth and predictions number their classes differently,
+    translate one side first; see
+    [Translating class ids](filtering.md#translating-class-ids).
+
+## A full report in one call
+
+[`hires.evaluate`][hires.evaluate] computes all of the above, writes it to
+a directory and returns the detection report:
+
+```python
+>>> report = hires.evaluate(gt, pred, "evaluation", class_names=names, save_images=False)
+>>> from pathlib import Path
+>>> sorted(path.name for path in Path("evaluation").iterdir())
+['confusion_matrix.csv', 'confusion_matrix.png', 'detection_report.csv', 'matches.csv', 'precision_recall.csv', 'precision_recall.png']
+```
+
+With `save_images=True`, the default, it also writes one comparison image
+per scan whose image file is known. The usual call reads both sides from
+disk:
+
+```python
+>>> gt = hires.read_album("labels/", image_dir="scans/")  # doctest: +SKIP
+>>> pred = hires.read_album("results/", image_dir="scans/")  # doctest: +SKIP
+>>> report = hires.evaluate(gt, pred, "evaluation/")  # doctest: +SKIP
+```
+
+The files are described in
+[Output files](../reference/outputs.md#hires-evaluate).
 
 ## Inspecting individual objects
 
-Numbers say how often the model is wrong; pictures say why.
+Numbers say how often the model is wrong; pictures say why. To look at one
+object, select its match. `pick` returns a representative example of a
+status:
 
 ```python
-image = hires.plot.comparison(
-    "scans/C1-1_control.tif", matches.for_image("C1-1_control"),
-    save="comparison.png",
-)
+>>> matches = hires.metrics.match(gt, pred)
+>>> typical = matches.pick("tp")                 # the true positive with the median IoU
+>>> typical.pred_index, round(typical.iou, 2)
+(0, 1.0)
+>>> worst = matches.pick("tp", by="worst_iou")
+>>> worst.pred_index, round(worst.iou, 2)
+(1, 0.8)
 ```
 
-draws every match on the scan, coloured by status. To look at one object
-closely, select a match and pass it to
-[`hires.plot.individual`](../reference/plot.md):
+`find` returns the match of a specific object, identified by the number
+drawn next to it in an overlay:
 
 ```python
-typical = matches.pick("tp")                      # median IoU
-worst = matches.pick("tp", by="worst_iou")
-missed = matches.pick("fn", by="random", seed=0)
-
-hires.plot.individual(worst, save="worst.png")
+>>> found = matches.find(pred_index=2)
+>>> found.status, found.gt.class_id, found.pred.class_id
+('misclassified', 1, 0)
 ```
 
-To find a specific object, use the number drawn next to it in an overlay:
-
-```python
-m = matches.find(pred_index=158, image="C1-1_control")
-m.status, m.iou
-```
-
-See [Visualisation](plotting.md) for the figures.
+Pass a match to [`hires.plot.individual`](plotting.md#a-single-object) to
+see both outlines side by side.
 
 ## Trait agreement
 
@@ -278,31 +451,29 @@ matters whether the *measurements* agree. The match table holds the traits
 of both objects of every pair, so agreement is a few lines of pandas:
 
 ```python
-table = matches.with_status("tp").to_frame()
-
-ratio = table["pred_area"] / table["gt_area"]
-ratio.median()                                  # multiplicative bias
-table["pred_area"].corr(table["gt_area"])       # Pearson r
+>>> pairs = matches.with_status("tp").to_frame()
+>>> ratio = pairs["pred_area"] / pairs["gt_area"]
+>>> ratio.round(2).tolist()
+[1.0, 0.8]
+>>> round(float(ratio.median()), 2)
+0.9
 ```
 
-Give both albums the same physical scale with
+A median ratio away from one indicates a systematic offset, for example
+halos included in the predicted masks. A constant offset can be corrected
+with a constant factor; a low correlation between `pred_area` and `gt_area`
+cannot.
+
+Give both sides the same physical scale with
 [`with_scale`][hires.Collection.with_scale] before matching to obtain the
 traits in physical units.
 
-A ratio with a median away from one indicates a systematic offset, for
-example halos included in the predicted masks. It can be corrected by a
-constant factor, whereas a low correlation cannot.
-
 The legacy module [`hires.analysis`](../reference/analysis.md) draws
 distribution, bias, Bland-Altman, Taylor and target diagrams from the same
-table. It needs the `analysis` extra and is scheduled to be replaced:
-
-```python
-hires.analysis.bland_altman(table)
-```
+table. It needs the `analysis` extra and is scheduled to be replaced.
 
 ## See also
 
 - Reference: [`hires.metrics`](../reference/metrics.md),
   [`hires.plot`](../reference/plot.md)
-- [Output files of `hires evaluate`](../reference/outputs.md#hires-evaluate)
+- [Visualisation](plotting.md)

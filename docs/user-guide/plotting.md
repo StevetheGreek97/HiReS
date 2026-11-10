@@ -7,58 +7,125 @@ evaluation charts. Two conventions hold throughout:
 - Functions that draw a **chart** return the Matplotlib `Axes` or `Figure`.
 
 No function calls `plt.show()`, and every function accepts `save=` to write
-the result to a file. Matplotlib is imported only when `hires.plot` is
-first used.
+the result to a file. Every figure on this page was produced by the code
+shown above it.
+
+## The example scan
+
+To have something to draw, we make a small synthetic scan: a grey image
+with five dark blobs, two of class 0 and three of class 1. With real data,
+you would use the path of your scan and a collection from
+[`hires.segment`][hires.segment] or [`hires.read_txt`][hires.read_txt].
+
+```python
+>>> import numpy as np
+>>> import cv2
+>>> from shapely.affinity import rotate, scale
+>>> from shapely.geometry import Point
+>>> import hires
+>>> def blob(class_id, x, y, radius, stretch=1.0, angle=0.0):
+...     outline = rotate(scale(Point(x, y).buffer(radius), yfact=stretch), angle)
+...     return hires.Annotation(class_id, outline)
+>>> gt = hires.Collection(
+...     [
+...         blob(0, 0.20, 0.25, 0.07, stretch=2.2, angle=30),
+...         blob(0, 0.55, 0.30, 0.06, stretch=2.0, angle=-50),
+...         blob(1, 0.70, 0.60, 0.05, stretch=1.4),
+...         blob(1, 0.30, 0.70, 0.05, stretch=1.5, angle=80),
+...         blob(1, 0.58, 0.78, 0.04),
+...     ],
+...     name="scan",
+...     image_size=(600, 400),
+... )
+>>> scan = np.full((400, 600, 3), 200, dtype=np.uint8)
+>>> for a in gt:
+...     outline = np.array(a.to_pixels((600, 400)).exterior.coords, dtype=np.int32)
+...     _ = cv2.fillPoly(scan, [outline], (95, 110, 120))
+```
+
+The "predictions" are the same outlines, grown a little, with one object
+missing, one given the wrong class, and one spurious detection added:
+
+```python
+>>> def predicted(a, confidence, class_id=None):
+...     return a.replace(
+...         polygon=a.polygon.buffer(0.012),
+...         confidence=confidence,
+...         class_id=a.class_id if class_id is None else class_id,
+...     )
+>>> pred = hires.Collection(
+...     [
+...         predicted(gt[0], 0.94),
+...         predicted(gt[1], 0.91),
+...         predicted(gt[2], 0.83),
+...         predicted(gt[3], 0.62, class_id=0),
+...         blob(1, 0.75, 0.15, 0.035).replace(confidence=0.41),
+...     ],
+...     name="scan",
+...     image_size=(600, 400),
+... )
+>>> names = {0: "pulex", 1: "galeata"}
+```
 
 ## Annotations on an image
 
-```python
-import matplotlib.pyplot as plt
+[`overlay`][hires.plot.overlay] fills each polygon in the colour of its
+class, draws its bounding box and writes a label
+`index class confidence` next to it:
 
-rgb = hires.plot.overlay(
-    "scan.tif", collection, class_names={0: "D. pulex", 1: "D. galeata"}
-)
-plt.imshow(rgb)
+```python
+>>> rgb = hires.plot.overlay(scan, pred, class_names=names, save="plot_overlay.png")
+>>> rgb.shape, rgb.dtype
+((400, 600, 3), dtype('uint8'))
 ```
 
-[`overlay`][hires.plot.overlay] fills each polygon in the colour of its
-class, draws its bounding box and writes a label `index class confidence`
-next to it. The **index** is the position of the annotation in the
-collection, and for a collection read from disk, the line number in the
-label file. Use it to look an object up: `collection[158]`.
+![Overlay with fill, boxes and labels](../assets/examples/plot_overlay.png)
+
+The **index** is the position of the annotation in the collection, and for
+a collection read from disk, the line number in the label file. Use it to
+look an object up:
+
+```python
+>>> pred[3]
+Annotation(class_id=0, confidence=0.620, vertices=128)
+```
 
 Each element can be switched off:
 
 ```python
-hires.plot.overlay(
-    "scan.tif", collection,
-    fill=True, boxes=False, labels=False, alpha=0.35,
-    save="outlines_only.png",
-)
+>>> _ = hires.plot.overlay(
+...     scan, pred, boxes=False, labels=False, alpha=0.35, save="plot_outlines.png"
+... )
 ```
 
-The first argument may also be an 8-bit BGR array, as returned by
-[`hires.io.read_image`](../reference/io.md#low-level-helpers-hiresio).
-Reading a large scan once and passing the array avoids decoding it again
-for every figure.
+![Overlay with fill only](../assets/examples/plot_outlines.png)
+
+The first argument is either the path of an image file or an 8-bit BGR
+array, as returned by `hires.io.read_image`. Reading a large scan once and
+passing the array avoids decoding it again for every figure. To show the
+result in a notebook or a window, hand the returned array to Matplotlib:
+
+```python
+>>> import matplotlib.pyplot as plt
+>>> image = plt.imshow(rgb)
+```
 
 Colours are taken from `hires.plot.PALETTE` by class id and repeat after
 ten classes.
 
 ## Predictions versus ground truth
 
-```python
-matches = hires.metrics.match(gt, pred)
+[`comparison`][hires.plot.comparison] colours each object by the outcome
+of [matching](evaluation.md#matching):
 
-hires.plot.comparison(
-    "scans/C1-1_control.tif",
-    matches.for_image("C1-1_control"),
-    save="comparison.png",
-)
+```python
+>>> matches = hires.metrics.match(gt, pred)
+>>> matches.counts()
+{'tp': 3, 'misclassified': 1, 'fp': 1, 'fn': 1}
+>>> _ = hires.plot.comparison(scan, matches, save="plot_comparison.png")
 ```
 
-[`comparison`][hires.plot.comparison] colours each object by its match
-status:
+![Comparison image](../assets/examples/plot_comparison.png)
 
 | Colour | Status | Polygon drawn |
 |--------|--------|---------------|
@@ -67,8 +134,9 @@ status:
 | Red | `fp` | Prediction |
 | Blue | `fn` | Missed ground truth |
 
-For an album result, select one image with `for_image` first, as above.
-`hires.evaluate` writes this image for every scan.
+For the result of matching two albums, select one image first with
+`matches.for_image(name)`. [`hires.evaluate`][hires.evaluate] writes this
+image for every scan.
 
 ## A single object
 
@@ -77,94 +145,118 @@ draws four panels: the ground-truth mask, the predicted mask, the raw crop,
 and both outlines together with the IoU and the match status.
 
 ```python
-worst = matches.pick("tp", by="worst_iou")
-figure = hires.plot.individual(worst, class_names=names, save="worst.png")
+>>> worst = matches.pick("tp", by="worst_iou")
+>>> figure = hires.plot.individual(
+...     worst, scan, class_names=names, figsize=(7, 7), save="plot_individual.png"
+... )
 ```
 
-The image is taken from the match when the albums were read with
-`image_dir=`. For many figures of the same scan, read it once:
+![One match in four panels](../assets/examples/plot_individual.png){ width="520" }
 
-```python
-scan = hires.io.read_image("scans/C1-1_control.tif")
-for number, m in enumerate(matches.for_image("C1-1_control").with_status("fn")):
-    figure = hires.plot.individual(m, scan, save=f"missed/{number:03d}.png")
-    plt.close(figure)
-```
+When the collections were read with their images (`image=` or
+`image_dir=`), the image argument can be left out and is taken from the
+match. For many figures of one scan, read the scan once and pass the
+array, as here.
 
 !!! warning "Close figures in loops"
 
-    Matplotlib keeps every figure alive until it is closed. In a loop, call
-    `plt.close(figure)` after saving, as above.
+    Matplotlib keeps every figure alive until it is closed. When producing
+    figures in a loop, call `plt.close(figure)` after saving:
+
+    ```python
+    >>> for number, m in enumerate(matches.with_status("fp", "fn")):
+    ...     figure = hires.plot.individual(m, scan, save=f"errors/{number:03d}.png")
+    ...     plt.close(figure)
+    ```
 
 To draw only the outline of one annotation, without an image, use
 [`annotation`][hires.plot.annotation]. With `obb=True` it adds the minimum
-rotated rectangle from which body length and width are measured:
+rotated rectangle from which body length and width are measured, and with
+`bbox=True` the axis-aligned bounding box:
 
 ```python
-hires.plot.annotation(
-    collection[0], image_size=collection.image_size, obb=True, bbox=True
-)
+>>> ax = hires.plot.annotation(
+...     gt[0], image_size=gt.image_size, obb=True, bbox=True, save="plot_annotation.png"
+... )
 ```
+
+![Outline with oriented and axis-aligned bounding boxes](../assets/examples/plot_annotation.png){ width="360" }
 
 ## Evaluation charts
 
 ### Confusion matrix
 
 ```python
-matrix = hires.metrics.confusion_matrix(gt, pred, class_names=names)
-ax = hires.plot.confusion_matrix(matrix)                    # row-normalized
-ax = hires.plot.confusion_matrix(matrix, normalize=False)   # raw counts
+>>> matrix = hires.metrics.confusion_matrix(gt, pred, class_names=names)
+>>> matrix
+pred        pulex  galeata  background
+gt
+pulex           2        0           0
+galeata         1        1           1
+background      0        1           0
+>>> ax = hires.plot.confusion_matrix(matrix, save="plot_confusion.png")
 ```
+
+![Confusion matrix](../assets/examples/plot_confusion.png){ width="440" }
+
+Each row is normalized to sum to one, so the diagonal reads as recall per
+class. Pass `normalize=False` for raw counts.
 
 ### Precision-recall curves
 
-A single curve, or several as a dict of `{label: curve}`; the point with
-the best F1 is marked on each:
-
 ```python
-curves = {
-    name: hires.metrics.precision_recall_curve(gt, pred, class_id=class_id)
-    for class_id, name in names.items()
-}
-hires.plot.precision_recall(curves, save="pr_per_class.png")
+>>> curve = hires.metrics.precision_recall_curve(gt, pred)
+>>> ax = hires.plot.precision_recall(curve, save="plot_pr.png")
 ```
 
-The same works for comparing models: one curve per model, same ground
-truth.
+![Precision-recall curve](../assets/examples/plot_pr.png){ width="440" }
+
+The marker shows the point with the best F1. To compare several curves,
+pass a dict of `{label: curve}`, for example one curve per class or one per
+model:
+
+```python
+>>> curves = {
+...     label: hires.metrics.precision_recall_curve(gt, pred, class_id=class_id)
+...     for class_id, label in names.items()
+... }
+>>> ax = hires.plot.precision_recall(curves)
+```
 
 ### Training curves
 
 [`training_curves`][hires.plot.training_curves] plots the training and
 validation losses from the `results.csv` that Ultralytics writes during
-training:
+training. With `patience`, a vertical line marks the best epoch, assuming
+training was ended by early stopping.
 
 ```python
-hires.plot.training_curves("runs/segment/train/results.csv", patience=50)
+>>> figure = hires.plot.training_curves(  # doctest: +SKIP
+...     "runs/segment/train/results.csv", patience=50
+... )
 ```
-
-With `patience`, a vertical line marks the best epoch, assuming training
-was ended by early stopping.
 
 ## Composing figures
 
 Chart functions accept `ax=`, so they fit into any Matplotlib layout:
 
 ```python
-figure, (left, right) = plt.subplots(1, 2, figsize=(12, 5))
-hires.plot.confusion_matrix(matrix, ax=left, title="Confusion")
-hires.plot.precision_recall(curve, ax=right, title="Precision-recall")
-figure.savefig("evaluation.pdf")
+>>> figure, (left, right) = plt.subplots(1, 2, figsize=(11, 4.5))
+>>> _ = hires.plot.confusion_matrix(matrix, ax=left, title="Confusion")
+>>> _ = hires.plot.precision_recall(curve, ax=right, title="Precision-recall")
+>>> figure.savefig("plot_composed.png", dpi=120, bbox_inches="tight")
 ```
+
+![Two charts in one figure](../assets/examples/plot_composed.png)
 
 ## Working without a display
 
-On a server or in a batch job, select a non-interactive backend before the
-first plot:
+On a server or in a batch job, select a non-interactive Matplotlib backend
+before the first plot:
 
 ```python
-import matplotlib
-
-matplotlib.use("Agg")
+>>> import matplotlib
+>>> matplotlib.use("Agg")
 ```
 
 The `hires` command needs no such setup.

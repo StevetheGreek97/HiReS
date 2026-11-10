@@ -60,9 +60,12 @@ include = ["hires*"]
 hires = ["py.typed"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "--doctest-modules --doctest-glob='*.md' -p no:cacheprovider"
+# "docs" runs the >>> examples of every documentation page as doctests.
+testpaths = ["tests", "docs"]
+addopts = "--doctest-modules --doctest-glob='*.md' --ignore=docs/assets -p no:cacheprovider"
 filterwarnings = ["error::hires.HiresWarning"]
+# tools/doc_examples.py strips trailing spaces and newlines from the output it writes.
+doctest_optionflags = ["NORMALIZE_WHITESPACE"]
 
 [tool.ruff]
 line-length = 100

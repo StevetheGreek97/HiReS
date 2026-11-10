@@ -35,11 +35,22 @@ to the [API reference](../reference/index.md).
 
 ## Conventions used in this documentation
 
+Examples are shown as an interactive Python session. Lines starting with
+`>>>` (and their continuation lines, `...`) are what you type; the lines
+below them are what Python prints:
+
 ```python
-import hires
+>>> import hires
+>>> hires.tiling.tile_grid((2000, 1000), tile_size=1024, overlap=150)
+[(0, 0), (874, 0), (1748, 0)]
 ```
 
-is assumed throughout. Submodules are accessed as attributes
+Every page starts from scratch and builds its own small example data, so
+the examples can be run as they are, without a model or image files. The
+output shown is produced by running the examples when the documentation is
+built, not typed by hand.
+
+`import hires` is assumed throughout. Submodules are accessed as attributes
 (`hires.metrics`, `hires.plot`, `hires.tiling`, `hires.io`); there is no
 need to import them separately.
 

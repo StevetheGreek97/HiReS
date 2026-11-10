@@ -19,21 +19,8 @@ ecological image analysis. Their names are listed, in order, in
 
 ## Computing traits
 
-For a whole collection, as a table:
-
-```python
-frame = collection.to_frame()
-frame[["class_id", "area", "obb_length", "circularity"]]
-```
-
-For a single annotation, as a dict:
-
-```python
-traits = collection[0].traits(collection.image_size)
-traits["obb_length"]
-```
-
-For any Shapely polygon, with [`hires.measure`][hires.measure]:
+For any Shapely polygon, [`hires.measure`][hires.measure] returns the
+traits as a dict. A 4 × 2 rectangle:
 
 ```python
 >>> from shapely.geometry import box
@@ -41,6 +28,65 @@ For any Shapely polygon, with [`hires.measure`][hires.measure]:
 >>> traits = hires.measure(box(0, 0, 4, 2))
 >>> traits["area"], traits["perimeter"], traits["obb_length"], traits["obb_width"]
 (8.0, 12.0, 4.0, 2.0)
+>>> for name in hires.TRAIT_NAMES:
+...     print(f"{name:12} {traits[name]:.3f}")
+area         8.000
+perimeter    12.000
+solidity     1.000
+convexity    1.000
+circularity  0.698
+bbox_width   4.000
+bbox_height  2.000
+obb_width    2.000
+obb_length   4.000
+```
+
+The shape descriptors tell shapes apart regardless of size. Compare the
+rectangle with a circle and with an L-shaped polygon:
+
+```python
+>>> from shapely.geometry import Point, Polygon
+>>> shapes = {
+...     "rectangle": box(0, 0, 4, 2),
+...     "circle": Point(0, 0).buffer(1, quad_segs=64),
+...     "L-shape": Polygon([(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]),
+... }
+>>> for label, polygon in shapes.items():
+...     t = hires.measure(polygon)
+...     print(f"{label:10} circularity={t['circularity']:.2f}  "
+...           f"solidity={t['solidity']:.2f}  convexity={t['convexity']:.2f}")
+rectangle  circularity=0.70  solidity=1.00  convexity=1.00
+circle     circularity=1.00  solidity=1.00  convexity=1.00
+L-shape    circularity=0.34  solidity=0.61  convexity=0.89
+```
+
+The circle is the most compact shape (circularity 1); the L-shape has a
+deep concavity, which lowers its solidity.
+
+In practice you rarely call `measure` yourself. A collection measures all
+its annotations at once, in the right units:
+
+```python
+>>> collection = hires.Collection(
+...     [
+...         hires.Annotation(0, box(0.10, 0.10, 0.30, 0.20), confidence=0.9),
+...         hires.Annotation(1, box(0.50, 0.50, 0.60, 0.90), confidence=0.7),
+...     ],
+...     name="scan",
+...     image_size=(2000, 1000),
+... )
+>>> collection.to_frame()[["class_id", "area", "perimeter", "obb_length", "obb_width"]]
+   class_id     area  perimeter  obb_length  obb_width
+0         0  40000.0     1000.0       400.0      100.0
+1         1  80000.0     1200.0       400.0      200.0
+```
+
+and a single annotation is measured with
+[`Annotation.traits`][hires.Annotation.traits], given the image size:
+
+```python
+>>> collection[0].traits(collection.image_size)["obb_length"]
+400.0
 ```
 
 ## Definitions
@@ -158,15 +204,24 @@ is the edge length of one pixel. Lengths are multiplied by $s$, areas by
 $s^2$.
 
 ```python
->>> collection = hires.Collection(
-...     [hires.Annotation(0, box(0, 0, 0.5, 0.5))], image_size=(2400, 2400)
-... )
 >>> scaled = collection.with_scale(dpi=2400, unit="um")
->>> round(scaled.pixel_size, 3)
+>>> round(scaled.pixel_size, 3)        # micrometres per pixel
 10.583
+>>> scaled.to_frame()[["class_id", "area", "obb_length", "obb_width"]].round(1)
+   class_id       area  obb_length  obb_width
+0         0  4480277.8      4233.3     1058.3
+1         1  8960555.6      4233.3     2116.7
 ```
 
-The supported units are the keys of [`hires.UNITS`][hires.UNITS]:
+The same objects as above, now in µm² and µm. The supported units and
+their number per inch:
+
+```python
+>>> hires.UNITS
+{'nm': 25400000.0, 'um': 25400.0, 'mm': 25.4, 'cm': 2.54, 'm': 0.0254, 'inch': 1.0}
+```
+
+The keys of [`hires.UNITS`][hires.UNITS] are what `unit=` accepts:
 
 | `unit` | Meaning | Units per inch |
 |--------|---------|----------------|

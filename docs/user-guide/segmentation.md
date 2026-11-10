@@ -223,6 +223,97 @@ object works that provides
 This is the interface of `ultralytics.YOLO`. Passing an object does not
 require the `yolo` extra.
 
+## A worked example without a neural network
+
+The interface above is small enough to write a toy "model" by hand, which
+makes the whole pipeline runnable in a few lines and shows what the
+parameters do. This one outlines every bright blob in a tile:
+
+```python
+>>> from types import SimpleNamespace
+>>> import numpy as np
+>>> import cv2
+>>> class BlobModel:
+...     names = {0: "blob"}
+...     def predict(self, tiles, conf, imgsz, device, verbose):
+...         results = []
+...         for tile in tiles:
+...             height, width = tile.shape[:2]
+...             mask = (tile[..., 0] > 128).astype(np.uint8)
+...             contours, _ = cv2.findContours(
+...                 mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+...             )
+...             polygons = [c.reshape(-1, 2) / (width, height) for c in contours]
+...             boxes = SimpleNamespace(
+...                 cls=np.zeros(len(polygons)), conf=np.full(len(polygons), 0.9)
+...             )
+...             masks = SimpleNamespace(xyn=polygons) if polygons else None
+...             results.append(SimpleNamespace(masks=masks, boxes=boxes))
+...         return results
+```
+
+The scan is a black 600 × 400 px image with three white squares of 40 px:
+
+```python
+>>> scan = np.zeros((400, 600, 3), dtype=np.uint8)
+>>> for x, y in [(50, 50), (240, 100), (450, 300)]:
+...     scan[y : y + 40, x : x + 40] = 255
+```
+
+With 256 px tiles and an overlap of 64 px, the image is covered by six
+tiles, and all three squares are found exactly once:
+
+```python
+>>> import hires
+>>> hires.tiling.tile_grid((600, 400), tile_size=256, overlap=64)
+[(0, 0), (0, 192), (192, 0), (192, 192), (384, 0), (384, 192)]
+>>> found = hires.segment(scan, BlobModel(), tile_size=256, overlap=64)
+>>> found
+Collection(name=None, n=3, image_size=(600, 400))
+>>> sorted(tuple(round(v) for v in a.to_pixels((600, 400)).bounds) for a in found)
+[(50, 50, 89, 89), (240, 100, 279, 139), (450, 300, 489, 339)]
+```
+
+The second square spans x = 240…280 and therefore crosses the right border
+of the first tile (x = 256). That tile sees only a fragment and discards
+it; the neighbouring tile, which starts at x = 192, sees the square in
+full.
+
+Now remove the overlap. The tile border at x = 256 still cuts the square,
+but no other tile contains it completely, and it is lost:
+
+```python
+>>> len(hires.segment(scan, BlobModel(), tile_size=256, overlap=0))
+2
+```
+
+Switching the edge filter off instead keeps the square, but as two
+separate fragments, which are the two small areas below:
+
+```python
+>>> halves = hires.segment(scan, BlobModel(), tile_size=256, overlap=0, edge_margin=0)
+>>> len(halves)
+4
+>>> sorted(int(a.to_pixels((600, 400)).area) for a in halves)
+[585, 897, 1520, 1521]
+```
+
+Neither is what you want, which is why the overlap must exceed the size of
+the largest object.
+
+A [`Segmenter`][hires.Segmenter] holds the model and the settings, and is
+the object to reuse across images:
+
+```python
+>>> segmenter = hires.Segmenter(BlobModel(), tile_size=256, overlap=64)
+>>> segmenter.class_names
+{0: 'blob'}
+>>> segmenter.parameters()["overlap"], segmenter.parameters()["nms_iou"]
+(64, 0.7)
+>>> segmenter.segment(scan, name="again")
+Collection(name='again', n=3, image_size=(600, 400))
+```
+
 ## Memory
 
 The image is decoded completely into memory as an 8-bit, three-channel

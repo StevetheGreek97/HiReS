@@ -36,6 +36,7 @@ The makefile wraps the usual commands:
 | `make lint` | `ruff check` |
 | `make fix` | Apply the safe lint fixes |
 | `make test` | Run the test suite |
+| `make examples` | Re-run the `>>>` examples in the docs and rewrite their output and figures |
 | `make docs` | Build the documentation with `--strict` |
 | `make docs-serve` | Serve the documentation at <http://127.0.0.1:8000> with live reload |
 | `make build` | Build the sdist and wheel into `dist/` |
@@ -115,9 +116,8 @@ def iou(a, b):
     Examples
     --------
     >>> from shapely.geometry import box
-    >>> iou(box(0, 0, 2, 1), box(1, 0, 3, 1))
+    >>> hires.metrics.iou(box(0, 0, 2, 1), box(1, 0, 3, 1))
     0.3333333333333333
-    """
 ```
 
 Cross-references use reStructuredText roles, e.g.
@@ -153,6 +153,25 @@ The documentation is built with [MkDocs](https://www.mkdocs.org/),
 | Getting started | Take a new user to a first result | By hand |
 | User guide | Explain concepts and the reasoning behind them | By hand |
 | Reference | State exactly what every object does | Generated from the docstrings |
+
+### Examples with output
+
+The user guide follows the NumPy and Shapely manuals: every feature is
+shown as an interactive example, the statement after `>>>` and its output
+below it.
+
+- Examples must run as they are, without a model or files of the reader.
+  Build small objects in the page, or write the files the example needs.
+- **Never type output by hand.** Write the statements, then run
+  `make examples`. `tools/doc_examples.py` executes each page from top to
+  bottom in an empty directory and fills in what was printed. A PNG that
+  a page saves and embeds as `assets/examples/{name}.png` is copied into
+  `docs/assets/examples/`.
+- The pages are also tests: `pytest` runs them as doctests, so an example
+  whose output changed fails CI.
+- Keep output portable: show `path.name`, not paths; round floats; wrap
+  NumPy scalars in `float()`.
+- Mark statements that need a real model or data `# doctest: +SKIP`.
 
 A new public object needs a docstring **and** a `::: hires.name` entry on
 the matching page in `docs/reference/`; a new feature usually also deserves
